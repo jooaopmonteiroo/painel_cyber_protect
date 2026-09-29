@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acronis Cyber Protect - Painel de Monitoramento Enterprise</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            navy: '#1E2A4A',      /* Azul Marinho Institucional */
+                            gold: '#EBB528',      /* Amarelo Dourado / Acento */
+                            bg: '#F8FAFC',        /* Fundo Limpo Light Mode */
+                            card: '#FFFFFF',      /* Cards Brancos */
+                            border: '#E2E8F0',    /* Borda Suave */
+                            textMain: '#1E293B',  /* Texto Principal Escuro */
+                            textMuted: '#64748B'  /* Texto Secundário */
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+        }
+
+        /* Light Mode Enterprise Card Styling */
+        .enterprise-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-radius: 0.875rem;
+            transition: all 0.25s ease-in-out;
+        }
+
+        .enterprise-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(30, 42, 74, 0.08), 0 4px 6px -2px rgba(30, 42, 74, 0.04);
+            border-color: #CBD5E1;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F8FAFC;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #EBB528;
+        }
+
+        .pulse-subtle {
+            animation: pulse-animation 2s infinite ease-in-out;
+        }
+        @keyframes pulse-animation {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#EBB528] selection:text-[#1E2A4A]">
+
+    <!-- Executive Header Bar (#1E2A4A) -->
+    <header class="sticky top-0 z-40 bg-[#1E2A4A] text-white shadow-md px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Brand Title -->
+            <div class="flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-xl bg-[#EBB528] text-[#1E2A4A] flex items-center justify-center font-extrabold shadow-md">
+                    <i data-lucide="shield-check" class="w-6 h-6 stroke-[2.5]"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                        Acronis Cyber Protect <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#EBB528] text-[#1E2A4A]">Enterprise API</span>
+                    </h1>
+                    <p class="text-xs text-slate-300">Monitoramento Centralizado de Riscos & Resiliência Operacional</p>
+                </div>
+            </div>
+
+            <!-- Header Status & Action Controls -->
+            <div class="flex items-center space-x-4">
+                
+                <!-- Status Badge -->
+                <div id="connectionStatusBadge" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#141C33] text-slate-200 border border-[#2A3B66]">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#EBB528] pulse-subtle"></span>
+                    <span id="connectionStatusText">Carregando status...</span>
+                </div>
+
+                <!-- Auto Refresh Switch (30s) -->
+                <div class="flex items-center space-x-2 text-xs text-slate-200 bg-[#141C33] px-3 py-1.5 rounded-lg border border-[#2A3B66]">
+                    <input type="checkbox" id="autoRefreshToggle" class="w-4 h-4 rounded text-[#EBB528] focus:ring-[#EBB528] bg-slate-900 border-slate-700 cursor-pointer">
+                    <label for="autoRefreshToggle" class="cursor-pointer select-none font-medium">Auto-atualizar (30s)</label>
+                </div>
+
+                <!-- Manual Refresh Button (#EBB528) -->
+                <button id="btnRefresh" onclick="refreshDashboard()" class="flex items-center space-x-2 px-4 py-2 bg-[#EBB528] hover:bg-[#d9a41e] text-[#1E2A4A] rounded-xl text-xs font-extrabold shadow-md transition-all active:scale-95 cursor-pointer">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 stroke-[2.5]" id="refreshIcon"></i>
+                    <span>Atualizar Agora</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- Navigation Tabs Bar -->
+        <div class="flex border-b border-slate-200 space-x-2 overflow-x-auto pb-1">
+            <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-[#EBB528] text-[#1E2A4A] bg-white shadow-sm transition-all cursor-pointer">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <span>Painel Geral (KPIs & Analytics)</span>
+            </button>
+            <button onclick="switchTab('m365')" id="tab-m365" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">
+                <i data-lucide="cloud" class="w-4 h-4"></i>
+                <span>Microsoft 365 Cloud</span>
+                <span id="badgeM365Count" class="px-2 py-0.5 text-xs font-extrabold rounded-full bg-blue-100 text-blue-700 border border-blue-200">--</span>
+            </button>
+            <button onclick="switchTab('url-filtering')" id="tab-url-filtering" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">
+                <i data-lucide="globe" class="w-4 h-4"></i>
+                <span>Filtro de URLs / Web</span>
+                <span id="badgeUrlBlocksCount" class="px-2 py-0.5 text-xs font-extrabold rounded-full bg-amber-100 text-amber-800 border border-amber-200">0</span>
+            </button>
+            <button onclick="switchTab('alerts')" id="tab-alerts" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                <span>Alertas</span>
+                <span id="badgeCriticalAlertsCount" class="hidden px-2 py-0.5 text-xs font-extrabold rounded-full bg-red-100 text-red-700 border border-red-200">0</span>
+            </button>
+            <button onclick="switchTab('devices')" id="tab-devices" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">
+                <i data-lucide="monitor" class="w-4 h-4"></i>
+                <span>Dispositivos & Risco</span>
+            </button>
+            <button onclick="switchTab('policies')" id="tab-policies" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                <span>Planos de Segurança</span>
+            </button>
+        </div>
+
+        <!-- ================= SEÇÃO 1: PAINEL GERAL (6 CARDS & 8 GRÁFICOS ANALÍTICOS) ================= -->
+        <section id="section-overview" class="space-y-6">
+            
+            <!-- Grid Proporcional de 6 Cards de KPI -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                
+                <!-- CARD 1: TAXA DE SEGURANÇA GLOBAL -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Taxa Segurança</span>
+                            <span id="kpiHealthBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
+                                <span id="kpiHealthLabel">Calculando...</span>
+                            </span>
+                        </div>
+                        <div id="kpiSafePercentage" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--%</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
+                        <div><strong id="kpiSafeDetail" class="text-[#1E2A4A]">--/--</strong> Máquinas OK</div>
+                        <div class="text-[10px] text-slate-400">Cloud Storage: <span id="kpiStorageGb" class="text-slate-700 font-bold">-- GB</span></div>
+                    </div>
+                </div>
+
+                <!-- CARD 2: TOTAL DE DISPOSITIVOS -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Dispositivos</span>
+                            <div class="w-7 h-7 rounded-lg bg-slate-100 text-[#1E2A4A] flex items-center justify-center">
+                                <i data-lucide="server" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div id="kpiTotalResources" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] font-bold flex justify-between text-slate-600">
+                        <span class="text-emerald-600">🟢 <span id="kpiOnlineCount">--</span> Online</span>
+                        <span class="text-slate-500">Servidores: <span id="kpiServersCount">--</span></span>
+                    </div>
+                </div>
+
+                <!-- CARD 3: ALERTAS ATIVOS -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Alertas Ativos</span>
+                            <div class="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                                <i data-lucide="bell-ring" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div id="kpiTotalAlerts" class="text-3xl font-extrabold text-red-600 my-1">--</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] font-bold flex justify-between">
+                        <span class="text-red-600"><span id="kpiCriticalAlerts">--</span> Críticos</span>
+                        <span class="text-amber-600"><span id="kpiWarningAlerts">--</span> Avisos</span>
+                    </div>
+                </div>
+
+                <!-- CARD 4: STATUS DE BACKUPS (24h) -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Backups (24h)</span>
+                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div id="kpiBackupSuccess" class="text-3xl font-extrabold text-emerald-600 my-1">--</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] font-bold flex justify-between text-slate-600">
+                        <span class="text-emerald-600">🟢 Sucesso</span>
+                        <span class="text-red-600"><span id="kpiFailedBackups">0</span> Falhas</span>
+                    </div>
+                </div>
+
+                <!-- CARD 5: VULNERABILIDADES & PATCHES -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Patches / Vulns</span>
+                            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div id="kpiPendingVulns" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-bold">
+                        Patches Pendentes SO/Apps
+                    </div>
+                </div>
+
+                <!-- CARD 6: AMEAÇAS BLOQUEADAS -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Ameaças Barradas</span>
+                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div id="kpiThreatsBlocked" class="text-3xl font-extrabold text-emerald-600 my-1">--</div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-emerald-700 font-bold">
+                        Active Protection / EDR
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- LINHA DE GRÁFICOS 1: 3 GRÁFICOS PRINCIPAIS DE SÍNTESE -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chart 1: Severidade dos Alertas -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-[#EBB528]"></i>
+                            Alertas por Severidade
+                        </h3>
+                    </div>
+                    <div class="relative h-60 flex items-center justify-center">
+                        <canvas id="chartAlertSeverity"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Status de Risco dos Dispositivos -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-[#EBB528]"></i>
+                            Classificação de Risco dos Dispositivos
+                        </h3>
+                    </div>
+                    <div class="relative h-60 flex items-center justify-center">
+                        <canvas id="chartResourceRisk"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Execução dos Planos de Segurança -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-[#EBB528]"></i>
+                            Dispositivos Protegidos vs Desprotegidos
+                        </h3>
+                    </div>
+                    <div class="relative h-60 flex items-center justify-center">
+                        <canvas id="chartPolicyStatus"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- LINHA DE GRÁFICOS 2: 5 GRÁFICOS ANALÍTICOS AVANÇADOS -->
+            <div class="space-y-6 pt-2">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <h2 class="text-base font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-[#EBB528]"></i>
+                        Analytics Avançado & Telemetria do Ambiente
+                    </h2>
+                    <span class="text-xs text-slate-500 font-semibold">Atualização em tempo real via API Acronis</span>
+                </div>
+
+                <!-- Grid de Analytics Avançado (Row 1: Armazenamento + Evolução Temporal) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Analytics 1: Volume de Armazenamento por Tipo de Carga -->
+                    <div class="enterprise-card p-5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                                <i data-lucide="hard-drive" class="w-4 h-4 text-[#EBB528]"></i>
+                                Storage por Tipo de Carga
+                            </h3>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-600">GB / TB</span>
+                        </div>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="chartStorageWorkload"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Analytics 2: Evolução de Alertas Críticos vs Ameaças (24h/7d) -->
+                    <div class="enterprise-card p-5 flex flex-col justify-between lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-red-500"></i>
+                                Linha do Tempo: Alertas Críticos vs Ameaças Barradas
+                            </h3>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-600">Últimas 24 Horas</span>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="chartAlertThreatTimeline"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Grid de Analytics Avançado (Row 2: SO + Patches + Sucesso Proteção) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Analytics 3: Distribuição por Sistema Operacional -->
+                    <div class="enterprise-card p-5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                                <i data-lucide="cpu" class="w-4 h-4 text-[#EBB528]"></i>
+                                Distribuição de Sistemas Operacionais
+                            </h3>
+                        </div>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="chartOsDistribution"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Analytics 4: Vulnerabilidades por Severidade / Patch Management -->
+                    <div class="enterprise-card p-5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                                <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i>
+                                Patches & Vulnerabilidades por Severidade
+                            </h3>
+                        </div>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="chartVulnerabilitySeverity"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Analytics 5: Taxa de Sucesso da Proteção Diária -->
+                    <div class="enterprise-card p-5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                                <i data-lucide="check-check" class="w-4 h-4 text-emerald-500"></i>
+                                Taxa de Sucesso da Proteção Diária
+                            </h3>
+                        </div>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="chartProtectionSuccessRate"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEÇÃO 2: MÓDULO DE ALERTAS ================= -->
+        <section id="section-alerts" class="hidden space-y-4">
+            
+            <div class="enterprise-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-2 overflow-x-auto w-full md:w-auto">
+                    <button onclick="filterAlerts('all')" id="filter-btn-all" class="alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-extrabold bg-[#1E2A4A] text-white">Todos</button>
+                    <button onclick="filterAlerts('critical')" id="filter-btn-critical" class="alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-red-100 hover:text-red-700 border border-slate-200">Críticos</button>
+                    <button onclick="filterAlerts('warning')" id="filter-btn-warning" class="alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-amber-100 hover:text-amber-800 border border-slate-200">Avisos</button>
+                    <button onclick="filterAlerts('info')" id="filter-btn-info" class="alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-blue-100 hover:text-blue-800 border border-slate-200">Informativos</button>
+                </div>
+
+                <div class="relative w-full md:w-72">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="alertSearchInput" oninput="onAlertSearchChange()" placeholder="Buscar por máquina ou alerta..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1E2A4A]">
+                </div>
+            </div>
+
+            <div class="enterprise-card overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold">
+                            <tr>
+                                <th class="p-4">Severidade</th>
+                                <th class="p-4">Título do Alerta / Detalhes</th>
+                                <th class="p-4">Dispositivo Afetado</th>
+                                <th class="p-4">Data Ocorrência</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsTableBody" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEÇÃO 3: MÓDULO DE DISPOSITIVOS & RISCO ================= -->
+        <section id="section-devices" class="hidden space-y-4">
+            
+            <div class="enterprise-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <h2 class="text-sm font-extrabold text-[#1E2A4A] uppercase tracking-wider">Dispositivos Gerenciados</h2>
+                    <span id="devicesCounter" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#1E2A4A] text-white">0</span>
+                </div>
+
+                <div class="relative w-full md:w-80">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="deviceSearchInput" oninput="onDeviceSearchChange()" placeholder="Buscar máquina por nome, IP ou SO..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1E2A4A]">
+                </div>
+            </div>
+
+            <div class="enterprise-card overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold">
+                            <tr>
+                                <th class="p-4">Status Risco</th>
+                                <th class="p-4">Nome do Dispositivo</th>
+                                <th class="p-4">Endereço IP</th>
+                                <th class="p-4">Sistema Operacional</th>
+                                <th class="p-4">Agente</th>
+                                <th class="p-4">Vulnerabilidades</th>
+                                <th class="p-4">Último Backup</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicesTableBody" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEÇÃO 4: MÓDULO DE PLANOS DE SEGURANÇA ================= -->
+        <section id="section-policies" class="hidden space-y-6">
+            
+            <!-- Resumo Estatístico de Proteção em Banner -->
+            <div class="enterprise-card p-5 bg-gradient-to-r from-[#1E2A4A] to-[#2A3B66] text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-[#EBB528]"></i>
+                        Gerenciamento de Planos de Proteção & Cobertura
+                    </h2>
+                    <p class="text-xs text-slate-300 mt-1">Mapeamento dinâmico da quantidade exata de dispositivos com planos ativos e desprotegidos</p>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white/10 px-4 py-2 rounded-xl border border-white/20 text-center">
+                        <span class="text-xs text-slate-300 font-medium block">Total de Políticas</span>
+                        <strong id="summaryTotalPolicies" class="text-lg font-extrabold text-white">0</strong>
+                    </div>
+                    <div class="bg-emerald-950/80 px-4 py-2 rounded-xl border border-emerald-500/40 text-center">
+                        <span class="text-xs text-emerald-300 font-medium block">Máquinas Protegidas</span>
+                        <strong id="summaryProtectedMachines" class="text-lg font-extrabold text-emerald-400">0</strong>
+                    </div>
+                    <div class="bg-red-950/80 px-4 py-2 rounded-xl border border-red-500/40 text-center">
+                        <span class="text-xs text-red-300 font-medium block">Máquinas Desprotegidas</span>
+                        <strong id="summaryUnprotectedMachines" class="text-lg font-extrabold text-red-400">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Cards de Políticas com Contagem Exata de Máquinas -->
+            <div id="policiesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Inserido dinamicamente via JS -->
+            </div>
+        </section>
+
+        <!-- ================= SEÇÃO 5: MÓDULO MICROSOFT 365 CLOUD ================= -->
+        <section id="section-m365" class="hidden space-y-6">
+            
+            <!-- Banner Resumo M365 -->
+            <div class="enterprise-card p-5 bg-gradient-to-r from-[#1E2A4A] via-[#25355D] to-[#1E2A4A] text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-[#EBB528] border border-blue-400/30 flex items-center justify-center font-extrabold shadow-md">
+                        <i data-lucide="cloud" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+                            Microsoft 365 Cloud Protection
+                        </h2>
+                        <p class="text-xs text-slate-300">Monitoramento unificado de Tenants, Caixas Exchange, SharePoint, Teams e Armazenamento Cloud</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="m365HealthLabel">Backup Saudável</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 4 Cards Estratégicos M365 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Total Tenants -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tenants M365</span>
+                        <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                            <i data-lucide="building-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="m365TotalTenants" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-medium">
+                        Organizações Gerenciadas
+                    </div>
+                </div>
+
+                <!-- Card 2: Caixas Exchange -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Caixas Exchange</span>
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="m365ProtectedMailboxes" class="text-3xl font-extrabold text-emerald-700 my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-emerald-700 font-bold">
+                        🟢 Mailboxes Protegidas
+                    </div>
+                </div>
+
+                <!-- Card 3: Sites SharePoint & Teams -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">SharePoint / Teams</span>
+                        <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                            <i data-lucide="folder-git-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="m365SharePointSites" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-medium">
+                        Sites & Bibliotecas Backup
+                    </div>
+                </div>
+
+                <!-- Card 4: Armazenamento M365 -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Armazenamento M365</span>
+                        <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                            <i data-lucide="cloud-storage" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="m365StorageUsedGb" class="text-3xl font-extrabold text-[#1E2A4A] my-1">-- GB</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-amber-700 font-bold">
+                        Volume Nuvem Consumido
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Grid de Cards de Contas/Organizações M365 -->
+            <div>
+                <h3 class="text-sm font-extrabold text-[#1E2A4A] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4 text-[#EBB528]"></i>
+                    Contas de Organizações Microsoft 365
+                </h3>
+                <div id="m365AccountsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Inserido dinamicamente via JS -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ================= SEÇÃO 6: MÓDULO FILTRO DE URLS / AMEAÇAS WEB ================= -->
+        <section id="section-url-filtering" class="hidden space-y-6">
+            
+            <!-- Banner Resumo Filtro de URLs -->
+            <div class="enterprise-card p-5 bg-gradient-to-r from-[#1E2A4A] via-[#2A3B66] to-[#1E2A4A] text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-[#EBB528] border border-amber-400/30 flex items-center justify-center font-extrabold shadow-md">
+                        <i data-lucide="globe" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+                            Filtro de URLs & Ameaças Web
+                        </h2>
+                        <p class="text-xs text-slate-300">Isolamento e análise de tentativas de acesso a domínios maliciosos, apostas, redes sociais e conteúdo não autorizado</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>Módulo de URL Filtering Ativo</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 4 Cards Estratégicos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Total Bloqueios Web -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Total Bloqueios Web</span>
+                        <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="urlTotalBlocks" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-amber-700 font-bold">
+                        Tentativas Bloqueadas
+                    </div>
+                </div>
+
+                <!-- Card 2: URLs Únicas Barradas -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Domínios Únicos</span>
+                        <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="urlUniqueUrls" class="text-3xl font-extrabold text-[#1E2A4A] my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-medium">
+                        URLs Distintas Identificadas
+                    </div>
+                </div>
+
+                <!-- Card 3: Categoria Mais Frequente -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Categoria Mais Barrada</span>
+                        <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="urlMostFrequentCat" class="text-lg font-extrabold text-[#1E2A4A] my-1 truncate">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-purple-700 font-bold">
+                        Maior Volume de Alertas
+                    </div>
+                </div>
+
+                <!-- Card 4: Top Dispositivo Solicitante -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Top Dispositivo</span>
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="urlTopDevice" class="text-sm font-extrabold text-[#1E2A4A] my-1 truncate">--</div>
+                    <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-medium">
+                        Máquina com Mais Alertas Web
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tabela de Bloqueios de URL com Filtro por Categoria -->
+            <div class="space-y-4">
+                
+                <div class="enterprise-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <!-- Botões de Categoria -->
+                    <div class="flex items-center space-x-2 overflow-x-auto w-full md:w-auto">
+                        <button onclick="filterUrlCategory('all')" id="url-cat-btn-all" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#1E2A4A] text-white">Todos</button>
+                        <button onclick="filterUrlCategory('Malware/Phishing')" id="url-cat-btn-malware" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-red-100 hover:text-red-700 border border-slate-200">Malware/Phishing</button>
+                        <button onclick="filterUrlCategory('Apostas/Jogos')" id="url-cat-btn-apostas" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-amber-100 hover:text-amber-800 border border-slate-200">Apostas/Jogos</button>
+                        <button onclick="filterUrlCategory('Redes Sociais')" id="url-cat-btn-social" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-blue-100 hover:text-blue-800 border border-slate-200">Redes Sociais</button>
+                        <button onclick="filterUrlCategory('Conteúdo Adulto')" id="url-cat-btn-adulto" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-purple-100 hover:text-purple-800 border border-slate-200">Conteúdo Adulto</button>
+                        <button onclick="filterUrlCategory('Outros / Downloads')" id="url-cat-btn-outros" class="url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">Outros</button>
+                    </div>
+
+                    <!-- Input de Pesquisa Textual -->
+                    <div class="relative w-full md:w-72">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="urlSearchInput" oninput="onUrlSearchChange()" placeholder="Buscar por URL, máquina ou IP..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1E2A4A]">
+                    </div>
+                </div>
+
+                <div class="enterprise-card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold">
+                                <tr>
+                                    <th class="p-4">Categoria</th>
+                                    <th class="p-4">Domínio / URL Bloqueada</th>
+                                    <th class="p-4">Dispositivo Solicitante</th>
+                                    <th class="p-4">Endereço IP</th>
+                                    <th class="p-4">Data / Hora</th>
+                                    <th class="p-4">Ação Aplicada</th>
+                                </tr>
+                            </thead>
+                            <tbody id="urlAlertsTableBody" class="divide-y divide-slate-200 text-slate-700">
+                                <!-- Inserido dinamicamente via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- MODAL DE SUB-FILTRO: MAQUINAS VINCULADAS AO PLANO SELECIONADO -->
+    <div id="policyMachinesModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="enterprise-card max-w-4xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div>
+                    <h3 id="modalPolicyTitle" class="text-base font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                        <i data-lucide="shield" class="w-5 h-5 text-[#EBB528]"></i>
+                        Máquinas Vinculadas ao Plano
+                    </h3>
+                    <p id="modalPolicySubtitle" class="text-xs text-slate-500 font-mono mt-0.5">Listagem detalhada das máquinas que possuem este plano applied</p>
+                </div>
+                <button onclick="closePolicyModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold sticky top-0">
+                        <tr>
+                            <th class="p-3">Status de Risco</th>
+                            <th class="p-3">Nome da Máquina</th>
+                            <th class="p-3">Endereço IP</th>
+                            <th class="p-3">Sistema Operacional</th>
+                            <th class="p-3">Status da Execução</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalPolicyTableBody" class="divide-y divide-slate-200 text-slate-700">
+                        <!-- Inserido dinamicamente via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closePolicyModal()" class="px-5 py-2 bg-[#1E2A4A] hover:bg-[#2A3B66] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE DETALHES DA CONTA MICROSOFT 365 -->
+    <div id="m365Modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="enterprise-card max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col shadow-2xl">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div>
+                    <h3 id="m365ModalTitle" class="text-base font-extrabold text-[#1E2A4A] flex items-center gap-2">
+                        <i data-lucide="cloud" class="w-5 h-5 text-[#EBB528]"></i>
+                        Detalhamento do Tenant M365
+                    </h3>
+                    <p id="m365ModalSubtitle" class="text-xs text-slate-500 font-mono mt-0.5">Visão detalhada de caixas de correio, sites do SharePoint e alertas</p>
+                </div>
+                <button onclick="closeM365Modal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Tabs Internas do Modal -->
+            <div class="flex border-b border-slate-200 space-x-2 text-xs font-bold">
+                <button onclick="switchM365ModalTab('mailboxes')" id="m365-modal-tab-mailboxes" class="px-4 py-2 border-b-2 border-[#EBB528] text-[#1E2A4A] bg-slate-50 rounded-t-lg transition-all cursor-pointer">Caixas de E-mail</button>
+                <button onclick="switchM365ModalTab('sites')" id="m365-modal-tab-sites" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">Sites SharePoint</button>
+                <button onclick="switchM365ModalTab('alerts')" id="m365-modal-tab-alerts" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer">Alertas M365</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto min-h-[300px]">
+                
+                <!-- Tabela de Mailboxes -->
+                <div id="m365-view-mailboxes" class="space-y-2">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold sticky top-0">
+                            <tr>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Nome / Departamento</th>
+                                <th class="p-3">E-mail Principal</th>
+                                <th class="p-3">Tamanho Backup</th>
+                                <th class="p-3">Último Backup</th>
+                            </tr>
+                        </thead>
+                        <tbody id="m365MailboxesTableBody" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Inserido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tabela de Sites SharePoint -->
+                <div id="m365-view-sites" class="hidden space-y-2">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold sticky top-0">
+                            <tr>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Nome do Site</th>
+                                <th class="p-3">URL do SharePoint</th>
+                                <th class="p-3">Tamanho Backup</th>
+                                <th class="p-3">Último Backup</th>
+                            </tr>
+                        </thead>
+                        <tbody id="m365SitesTableBody" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Inserido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tabela de Alertas M365 -->
+                <div id="m365-view-alerts" class="hidden space-y-2">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#1E2A4A] text-white uppercase tracking-wider font-extrabold sticky top-0">
+                            <tr>
+                                <th class="p-3">Severidade</th>
+                                <th class="p-3">Título do Alerta</th>
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="m365AlertsTableBody" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Inserido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closeM365Modal()" class="px-5 py-2 bg-[#1E2A4A] hover:bg-[#2A3B66] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">
+                    Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer Institucional -->
+    <footer class="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500 font-medium shadow-inner">
+        <p>Acronis Cyber Protect Cloud Enterprise API • Integração para Monitoramento e Resiliência Operacional</p>
+    </footer>
+
+    <!-- JavaScript Principal da Aplicação -->
+    <script>
+        const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
+
+        let currentTab = 'overview';
+        let currentAlertFilter = 'all';
+        let currentUrlCategory = 'all';
+        let alertSearchQuery = '';
+        let deviceSearchQuery = '';
+        let urlSearchQuery = '';
+        let autoRefreshInterval = null;
+        let globalPoliciesData = [];
+
+        let chartAlerts = null;
+        let chartRisk = null;
+        let chartPolicy = null;
+        let chartStorageWorkload = null;
+        let chartAlertThreatTimeline = null;
+        let chartOsDistribution = null;
+        let chartVulnerabilitySeverity = null;
+        let chartProtectionSuccessRate = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initCharts();
+            refreshDashboard();
+
+            document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    autoRefreshInterval = setInterval(refreshDashboard, 30000);
+                } else if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            });
+        });
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies'].forEach(t => {
+                const sec = document.getElementById(`section-${t}`);
+                if (sec) sec.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) {
+                    btn.classList.remove('border-[#EBB528]', 'text-[#1E2A4A]', 'bg-white', 'shadow-sm');
+                    btn.classList.add('border-transparent', 'text-slate-500');
+                }
+            });
+
+            const targetSec = document.getElementById(`section-${tabName}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-slate-500');
+                activeBtn.classList.add('border-[#EBB528]', 'text-[#1E2A4A]', 'bg-white', 'shadow-sm');
+            }
+        }
+
+        async function refreshDashboard() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            refreshIcon.classList.add('animate-spin');
+
+            try {
+                await Promise.all([
+                    fetchStatus(),
+                    fetchKPIs(),
+                    fetchAlerts(),
+                    fetchDevices(),
+                    fetchPolicies(),
+                    fetchM365Data(),
+                    fetchURLFilteringData(),
+                    fetchAnalyticsCharts()
+                ]);
+            } catch (err) {
+                console.error("Erro ao atualizar o dashboard:", err);
+            } finally {
+                setTimeout(() => refreshIcon.classList.remove('animate-spin'), 600);
+            }
+        }
+
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/status`);
+                const data = await res.json();
+                const badge = document.getElementById('connectionStatusBadge');
+                const text = document.getElementById('connectionStatusText');
+
+                if (data.is_mock) {
+                    badge.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-900/90 text-[#EBB528] border border-amber-700";
+                    text.innerHTML = `⚡ Modo Demonstração (Mock)`;
+                } else if (data.status === 'connected') {
+                    badge.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-700";
+                    text.innerHTML = `🟢 Conectado API Acronis BR02`;
+                } else {
+                    badge.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-900/90 text-[#EBB528] border border-amber-700";
+                    text.innerHTML = `⚠️ Erro de Credencial/URL`;
+                    badge.title = data.message || "Verifique o arquivo .env";
+                }
+            } catch (e) {
+                const badge = document.getElementById('connectionStatusBadge');
+                badge.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-red-950 text-red-400 border border-red-800";
+                document.getElementById('connectionStatusText').innerHTML = `🔴 Erro de Conexão`;
+            }
+        }
+
+        async function fetchKPIs() {
+            try {
+                const res = await fetch(`${API_BASE}/api/kpis`);
+                const data = await res.json();
+
+                document.getElementById('kpiSafePercentage').textContent = `${data.safe_percentage || 0}%`;
+                document.getElementById('kpiSafeDetail').textContent = `${data.safe_resources || 0}/${data.total_resources || 0}`;
+                document.getElementById('kpiStorageGb').textContent = `${data.storage_used_gb || 0} GB`;
+                
+                const healthBadge = document.getElementById('kpiHealthBadge');
+                const healthLabel = document.getElementById('kpiHealthLabel');
+                healthLabel.textContent = data.health_status_label || "Atenção";
+                if (data.health_status_label === 'Excelente') {
+                    healthBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-300";
+                } else if (data.health_status_label === 'Atenção') {
+                    healthBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300";
+                } else {
+                    healthBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-300";
+                }
+
+                document.getElementById('kpiTotalResources').textContent = data.total_resources || 0;
+                document.getElementById('kpiOnlineCount').textContent = data.online_resources || 0;
+                document.getElementById('kpiServersCount').textContent = data.servers_count || 0;
+
+                document.getElementById('kpiTotalAlerts').textContent = data.total_alerts || 0;
+                document.getElementById('kpiCriticalAlerts').textContent = data.critical_alerts || 0;
+                document.getElementById('kpiWarningAlerts').textContent = data.warning_alerts || 0;
+
+                document.getElementById('kpiBackupSuccess').textContent = data.backup_success || 0;
+                document.getElementById('kpiFailedBackups').textContent = data.failed_backups || 0;
+
+                document.getElementById('kpiPendingVulns').textContent = data.pending_vulnerabilities || 0;
+                document.getElementById('kpiThreatsBlocked').textContent = data.threats_blocked || 0;
+
+                // Atualiza o Banner de Proteção
+                document.getElementById('summaryProtectedMachines').textContent = `${data.protected_resources || 0} (${data.protected_percentage || 0}%)`;
+                document.getElementById('summaryUnprotectedMachines').textContent = data.unprotected_resources || 0;
+
+                const criticalBadge = document.getElementById('badgeCriticalAlertsCount');
+                if (data.critical_alerts > 0) {
+                    criticalBadge.textContent = data.critical_alerts;
+                    criticalBadge.classList.remove('hidden');
+                } else {
+                    criticalBadge.classList.add('hidden');
+                }
+
+                if (chartAlerts) {
+                    chartAlerts.data.datasets[0].data = [
+                        data.critical_alerts || 0,
+                        data.warning_alerts || 0,
+                        data.info_alerts || 0
+                    ];
+                    chartAlerts.update();
+                }
+
+                if (chartRisk) {
+                    chartRisk.data.datasets[0].data = [
+                        data.safe_resources || 0,
+                        data.warning_resources || 0,
+                        data.critical_resources || 0
+                    ];
+                    chartRisk.update();
+                }
+
+                if (chartPolicy) {
+                    chartPolicy.data.datasets[0].data = [
+                        data.protected_resources || 0,
+                        data.unprotected_resources || 0
+                    ];
+                    chartPolicy.update();
+                }
+
+            } catch (e) {
+                console.error("Erro ao carregar KPIs:", e);
+            }
+        }
+
+        async function fetchAlerts() {
+            try {
+                let url = `${API_BASE}/api/alerts?severity=${currentAlertFilter}`;
+                if (alertSearchQuery) {
+                    url += `&search=${encodeURIComponent(alertSearchQuery)}`;
+                }
+                const res = await fetch(url);
+                const data = await res.json();
+                renderAlertsTable(data.alerts || []);
+            } catch (e) {
+                console.error("Erro ao carregar alertas:", e);
+            }
+        }
+
+        function filterAlerts(severity) {
+            currentAlertFilter = severity;
+            document.querySelectorAll('.alert-filter-btn').forEach(btn => {
+                btn.className = "alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200";
+            });
+            const activeBtn = document.getElementById(`filter-btn-${severity}`);
+            if (activeBtn) {
+                activeBtn.className = "alert-filter-btn px-4 py-1.5 rounded-lg text-xs font-extrabold bg-[#1E2A4A] text-white shadow-sm";
+            }
+            fetchAlerts();
+        }
+
+        function onAlertSearchChange() {
+            alertSearchQuery = document.getElementById('alertSearchInput').value;
+            fetchAlerts();
+        }
+
+        function renderAlertsTable(alerts) {
+            const tbody = document.getElementById('alertsTableBody');
+            if (!alerts || alerts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="shield-check" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            Nenhum alerta encontrado com os filtros selecionados.
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = alerts.map(a => {
+                let sevBadge = '';
+                if (a.severity === 'critical') {
+                    sevBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-red-100 text-red-700 border border-red-200"><i data-lucide="alert-octagon" class="w-3.5 h-3.5"></i> Crítico</span>`;
+                } else if (a.severity === 'warning') {
+                    sevBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Aviso</span>`;
+                } else {
+                    sevBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-blue-100 text-blue-800 border border-blue-200"><i data-lucide="info" class="w-3.5 h-3.5"></i> Info</span>`;
+                }
+
+                const dateStr = new Date(a.created_at).toLocaleString('pt-BR');
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 whitespace-nowrap">${sevBadge}</td>
+                        <td class="p-4">
+                            <div class="font-bold text-[#1E2A4A]">${escapeHtml(a.title)}</div>
+                            <div class="text-slate-500 text-[11px] mt-0.5 font-medium line-clamp-1">${escapeHtml(a.details)}</div>
+                        </td>
+                        <td class="p-4 whitespace-nowrap font-bold text-slate-700">${escapeHtml(a.resource_name)}</td>
+                        <td class="p-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">${dateStr}</td>
+                        <td class="p-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${a.status === 'active' ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}">${a.status === 'active' ? 'Ativo' : 'Resolvido'}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function fetchDevices() {
+            try {
+                let url = `${API_BASE}/api/resources`;
+                if (deviceSearchQuery) {
+                    url += `?search=${encodeURIComponent(deviceSearchQuery)}`;
+                }
+                const res = await fetch(url);
+                const data = await res.json();
+                renderDevicesTable(data.resources || []);
+            } catch (e) {
+                console.error("Erro ao carregar dispositivos:", e);
+            }
+        }
+
+        function onDeviceSearchChange() {
+            deviceSearchQuery = document.getElementById('deviceSearchInput').value;
+            fetchDevices();
+        }
+
+        function renderDevicesTable(resources) {
+            document.getElementById('devicesCounter').textContent = resources.length;
+            const tbody = document.getElementById('devicesTableBody');
+
+            if (!resources || resources.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="monitor-off" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            Nenhum dispositivo encontrado.
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = resources.map(r => {
+                let riskBadge = '';
+                if (r.risk_level === 'critical') {
+                    riskBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold bg-red-100 text-red-700 border border-red-200"><span class="w-2 h-2 rounded-full bg-red-600"></span> Alto Risco</span>`;
+                } else if (r.risk_level === 'warning') {
+                    riskBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Atenção</span>`;
+                } else {
+                    riskBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-600"></span> Seguro</span>`;
+                }
+
+                const agentBadge = r.online 
+                    ? `<span class="inline-flex items-center gap-1 text-emerald-700 font-bold"><span class="w-2 h-2 rounded-full bg-emerald-600"></span> Online</span>`
+                    : `<span class="inline-flex items-center gap-1 text-red-600 font-bold"><span class="w-2 h-2 rounded-full bg-red-600"></span> Offline</span>`;
+
+                let backupBadge = '';
+                if (r.last_backup_status === 'failed') {
+                    backupBadge = `<span class="text-red-700 font-bold flex items-center gap-1"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Falhou</span>`;
+                } else if (r.last_backup_status === 'warning') {
+                    backupBadge = `<span class="text-amber-700 font-bold flex items-center gap-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Com Avisos</span>`;
+                } else {
+                    backupBadge = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Sucesso</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 whitespace-nowrap">${riskBadge}</td>
+                        <td class="p-4 font-bold text-[#1E2A4A] flex items-center gap-2">
+                            <i data-lucide="${r.type.includes('server') ? 'server' : 'laptop'}" class="w-4 h-4 text-[#1E2A4A]"></i>
+                            ${escapeHtml(r.name)}
+                        </td>
+                        <td class="p-4 font-mono text-xs text-slate-500 font-medium">${escapeHtml(r.ip)}</td>
+                        <td class="p-4 text-slate-800 font-semibold">${escapeHtml(r.os)}</td>
+                        <td class="p-4 whitespace-nowrap">${agentBadge}</td>
+                        <td class="p-4 whitespace-nowrap font-bold ${r.vulnerabilities > 0 ? 'text-amber-700' : 'text-slate-500'}">${r.vulnerabilities} Pendente(s)</td>
+                        <td class="p-4 whitespace-nowrap">${backupBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function fetchPolicies() {
+            try {
+                const res = await fetch(`${API_BASE}/api/policies`);
+                const data = await res.json();
+                globalPoliciesData = data.policies || [];
+                document.getElementById('summaryTotalPolicies').textContent = globalPoliciesData.length;
+                renderPoliciesGrid(globalPoliciesData);
+            } catch (e) {
+                console.error("Erro ao carregar políticas:", e);
+            }
+        }
+
+        function renderPoliciesGrid(policies) {
+            const grid = document.getElementById('policiesGrid');
+            if (!policies || policies.length === 0) {
+                grid.innerHTML = `<div class="col-span-3 text-center p-8 text-slate-500 font-medium">Nenhum plano de proteção ativo.</div>`;
+                return;
+            }
+
+            grid.innerHTML = policies.map((p, index) => {
+                const modulesList = p.modules ? p.modules.map(m => `<span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-bold border border-slate-200">${escapeHtml(m)}</span>`).join(' ') : '';
+                const isSuccess = p.last_run_status === 'success';
+                const bk = p.status_breakdown || {success: p.target_count, warning: 0, failed: 0};
+
+                return `
+                    <div class="enterprise-card p-5 flex flex-col justify-between space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-extrabold text-[#1E2A4A] text-sm flex items-center gap-2">
+                                    <i data-lucide="shield" class="w-4 h-4 text-[#EBB528]"></i>
+                                    ${escapeHtml(p.name)}
+                                </h3>
+                                <p class="text-xs text-slate-500 font-mono mt-0.5 line-clamp-1">${escapeHtml(p.type)}</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${isSuccess ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                                ${isSuccess ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </div>
+
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Máquinas Protegidas</span>
+                                <span class="text-2xl font-extrabold text-[#1E2A4A]">${p.target_count} <span class="text-xs font-bold text-slate-500">Dispositivos</span></span>
+                            </div>
+                            <div class="text-right text-[11px] font-bold space-y-0.5">
+                                <div class="text-emerald-700">🟢 ${bk.success || 0} OK</div>
+                                ${bk.warning > 0 ? `<div class="text-amber-700">🟡 ${bk.warning} Avisos</div>` : ''}
+                                ${bk.failed > 0 ? `<div class="text-red-700">🔴 ${bk.failed} Falhas</div>` : ''}
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Módulos de Proteção</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${modulesList}
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-xs text-slate-500 font-medium">Atualizado em: <strong>${new Date(p.last_run_time).toLocaleDateString('pt-BR')}</strong></span>
+                            
+                            <button onclick="openPolicyModal(${index})" class="px-3 py-1.5 bg-[#1E2A4A] hover:bg-[#2A3B66] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <span>Ver Máquinas (${p.target_count})</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function openPolicyModal(index) {
+            const policy = globalPoliciesData[index];
+            if (!policy) return;
+
+            document.getElementById('modalPolicyTitle').innerHTML = `
+                <i data-lucide="shield" class="w-5 h-5 text-[#EBB528]"></i>
+                ${escapeHtml(policy.name)}
+            `;
+            document.getElementById('modalPolicySubtitle').textContent = `Total de ${policy.target_count} dispositivo(s) vinculado(s) a este plano (${policy.type})`;
+
+            const tbody = document.getElementById('modalPolicyTableBody');
+            const machines = policy.machines || [];
+
+            if (machines.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-slate-500 font-medium">
+                            Nenhum dispositivo explicitamente vinculado a este plano.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = machines.map(m => {
+                    let riskBadge = '';
+                    if (m.risk_level === 'critical') {
+                        riskBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-700">Alto Risco</span>`;
+                    } else if (m.risk_level === 'warning') {
+                        riskBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">Atenção</span>`;
+                    } else {
+                        riskBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Seguro</span>`;
+                    }
+
+                    let execBadge = '';
+                    if (m.status === 'failed') {
+                        execBadge = `<span class="text-red-700 font-bold">🔴 Com Falha</span>`;
+                    } else if (m.status === 'warning') {
+                        execBadge = `<span class="text-amber-700 font-bold">🟡 Com Avisos</span>`;
+                    } else {
+                        execBadge = `<span class="text-emerald-700 font-bold">🟢 Sucesso</span>`;
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 whitespace-nowrap">${riskBadge}</td>
+                            <td class="p-3 font-bold text-[#1E2A4A]">${escapeHtml(m.name)}</td>
+                            <td class="p-3 font-mono text-slate-500 text-xs">${escapeHtml(m.ip)}</td>
+                            <td class="p-3 text-slate-700 font-medium">${escapeHtml(m.os)}</td>
+                            <td class="p-3 whitespace-nowrap">${execBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('policyMachinesModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closePolicyModal() {
+            document.getElementById('policyMachinesModal').classList.add('hidden');
+        }
+
+        // Funções do Módulo Microsoft 365 Cloud
+        async function fetchM365Data() {
+            try {
+                const [sumRes, accRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/m365/summary`),
+                    fetch(`${API_BASE}/api/m365/accounts`)
+                ]);
+                const summary = await sumRes.json();
+                const accData = await accRes.json();
+                
+                document.getElementById('m365TotalTenants').textContent = summary.total_tenants || 0;
+                document.getElementById('m365ProtectedMailboxes').textContent = summary.protected_mailboxes || 0;
+                document.getElementById('m365SharePointSites').textContent = summary.sharepoint_sites || 0;
+                document.getElementById('m365StorageUsedGb').textContent = `${summary.storage_used_gb || 0} GB`;
+                document.getElementById('badgeM365Count').textContent = summary.total_tenants || 0;
+
+                renderM365Grid(accData.accounts || []);
+            } catch (e) {
+                console.error("Erro ao carregar dados M365:", e);
+            }
+        }
+
+        function renderM365Grid(accounts) {
+            const grid = document.getElementById('m365AccountsGrid');
+            if (!accounts || accounts.length === 0) {
+                grid.innerHTML = `<div class="col-span-3 text-center p-8 text-slate-500 font-medium">Nenhum tenant M365 encontrado.</div>`;
+                return;
+            }
+
+            grid.innerHTML = accounts.map(a => {
+                const isOk = a.status === 'success';
+                return `
+                    <div class="enterprise-card p-5 flex flex-col justify-between space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-extrabold text-[#1E2A4A] text-sm flex items-center gap-2">
+                                    <i data-lucide="building-2" class="w-4 h-4 text-[#EBB528]"></i>
+                                    ${escapeHtml(a.name)}
+                                </h3>
+                                <p class="text-xs text-slate-500 font-mono mt-0.5">${escapeHtml(a.domain)}</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${isOk ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+                                ${isOk ? 'Protegido' : 'Com Avisos'}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <div>
+                                <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Mailboxes</span>
+                                <strong class="text-base font-extrabold text-[#1E2A4A]">${a.mailboxes_count}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Sites</span>
+                                <strong class="text-base font-extrabold text-[#1E2A4A]">${a.sites_count}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Storage</span>
+                                <strong class="text-base font-extrabold text-slate-700">${a.storage_gb} GB</strong>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-xs text-slate-500 font-medium">Último backup: <strong>${new Date(a.last_backup_time).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</strong></span>
+                            
+                            <button onclick="openM365Modal('${a.id}')" class="px-3.5 py-1.5 bg-[#1E2A4A] hover:bg-[#2A3B66] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <span>Ver Detalhes</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function openM365Modal(accountId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/m365/accounts/${accountId}/details`);
+                const data = await res.json();
+                const acc = data.account || {};
+
+                document.getElementById('m365ModalTitle').innerHTML = `
+                    <i data-lucide="cloud" class="w-5 h-5 text-[#EBB528]"></i>
+                    ${escapeHtml(acc.name || 'Tenant M365')}
+                `;
+                document.getElementById('m365ModalSubtitle').textContent = `Domínio Principal: ${acc.domain || 'N/A'} • Storage: ${acc.storage_gb || 0} GB`;
+
+                // Mailboxes
+                const mbBody = document.getElementById('m365MailboxesTableBody');
+                const mailboxes = data.mailboxes || [];
+                mbBody.innerHTML = mailboxes.map(m => `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-bold text-emerald-700">🟢 Protegida</td>
+                        <td class="p-3 font-bold text-[#1E2A4A]">${escapeHtml(m.name)}</td>
+                        <td class="p-3 font-mono text-slate-600">${escapeHtml(m.email)}</td>
+                        <td class="p-3 font-bold text-slate-700">${m.size_gb} GB</td>
+                        <td class="p-3 text-slate-500 font-mono">${new Date(m.last_backup).toLocaleDateString('pt-BR')}</td>
+                    </tr>
+                `).join('');
+
+                // Sites
+                const siteBody = document.getElementById('m365SitesTableBody');
+                const sites = data.sites || [];
+                siteBody.innerHTML = sites.map(s => `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-bold ${s.status === 'success' ? 'text-emerald-700' : 'text-amber-700'}">${s.status === 'success' ? '🟢 OK' : '🟡 Alerta'}</td>
+                        <td class="p-3 font-bold text-[#1E2A4A]">${escapeHtml(s.name)}</td>
+                        <td class="p-3 font-mono text-slate-500 text-[11px]">${escapeHtml(s.url)}</td>
+                        <td class="p-3 font-bold text-slate-700">${s.size_gb} GB</td>
+                        <td class="p-3 text-slate-500 font-mono">${new Date(s.last_backup).toLocaleDateString('pt-BR')}</td>
+                    </tr>
+                `).join('');
+
+                // Alerts
+                const altBody = document.getElementById('m365AlertsTableBody');
+                const alerts = data.alerts || [];
+                if (alerts.length === 0) {
+                    altBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum alerta para este tenant.</td></tr>`;
+                } else {
+                    altBody.innerHTML = alerts.map(a => `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 font-bold text-amber-700">⚠️ Aviso</td>
+                            <td class="p-3 font-bold text-[#1E2A4A]">${escapeHtml(a.title)}</td>
+                            <td class="p-3 text-slate-500 font-mono">${new Date(a.created_at).toLocaleDateString('pt-BR')}</td>
+                            <td class="p-3 text-slate-600">${escapeHtml(a.details)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                document.getElementById('m365Modal').classList.remove('hidden');
+                switchM365ModalTab('mailboxes');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Erro ao carregar detalhes M365:", e);
+            }
+        }
+
+        function closeM365Modal() {
+            document.getElementById('m365Modal').classList.add('hidden');
+        }
+
+        async function fetchURLFilteringData() {
+            try {
+                // Summary
+                const summaryRes = await fetch(`${API_BASE}/api/url_filtering/summary`);
+                const summary = await summaryRes.json();
+
+                document.getElementById('urlTotalBlocks').textContent = summary.total_blocks || 0;
+                document.getElementById('urlUniqueUrls').textContent = summary.unique_urls || 0;
+                document.getElementById('urlMostFrequentCat').textContent = summary.most_frequent_category || '--';
+                document.getElementById('urlTopDevice').textContent = summary.top_target_device || '--';
+                document.getElementById('badgeUrlBlocksCount').textContent = summary.total_blocks || 0;
+
+                // Alerts list
+                let url = `${API_BASE}/api/url_filtering/alerts?category=${encodeURIComponent(currentUrlCategory)}`;
+                if (urlSearchQuery) {
+                    url += `&search=${encodeURIComponent(urlSearchQuery)}`;
+                }
+                const alertsRes = await fetch(url);
+                const alertsData = await alertsRes.json();
+                renderUrlAlertsTable(alertsData.alerts || []);
+            } catch (e) {
+                console.error("Erro ao carregar dados do filtro de URLs:", e);
+            }
+        }
+
+        function filterUrlCategory(category) {
+            currentUrlCategory = category;
+            document.querySelectorAll('.url-cat-filter-btn').forEach(btn => {
+                btn.className = "url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200";
+            });
+
+            let btnId = 'url-cat-btn-all';
+            if (category === 'Malware/Phishing') btnId = 'url-cat-btn-malware';
+            else if (category === 'Apostas/Jogos') btnId = 'url-cat-btn-apostas';
+            else if (category === 'Redes Sociais') btnId = 'url-cat-btn-social';
+            else if (category === 'Conteúdo Adulto') btnId = 'url-cat-btn-adulto';
+            else if (category === 'Outros / Downloads') btnId = 'url-cat-btn-outros';
+
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) {
+                activeBtn.className = "url-cat-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#1E2A4A] text-white shadow-sm";
+            }
+            fetchURLFilteringData();
+        }
+
+        function onUrlSearchChange() {
+            urlSearchQuery = document.getElementById('urlSearchInput').value;
+            fetchURLFilteringData();
+        }
+
+        function renderUrlAlertsTable(alerts) {
+            const tbody = document.getElementById('urlAlertsTableBody');
+            if (!alerts || alerts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="globe-lock" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            Nenhum alerta de URL encontrado para esta categoria ou termo de busca.
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = alerts.map(a => {
+                let catBadge = '';
+                if (a.category === 'Malware/Phishing') {
+                    catBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-red-100 text-red-700 border border-red-200"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Malware/Phishing</span>`;
+                } else if (a.category === 'Apostas/Jogos') {
+                    catBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300"><i data-lucide="dices" class="w-3.5 h-3.5"></i> Apostas/Jogos</span>`;
+                } else if (a.category === 'Redes Sociais') {
+                    catBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-blue-100 text-blue-800 border border-blue-200"><i data-lucide="share-2" class="w-3.5 h-3.5"></i> Redes Sociais</span>`;
+                } else if (a.category === 'Conteúdo Adulto') {
+                    catBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200"><i data-lucide="eye-off" class="w-3.5 h-3.5"></i> Conteúdo Adulto</span>`;
+                } else {
+                    catBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-slate-100 text-slate-700 border border-slate-300"><i data-lucide="file-warning" class="w-3.5 h-3.5"></i> Outros / Downloads</span>`;
+                }
+
+                const dateStr = new Date(a.created_at).toLocaleString('pt-BR');
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 whitespace-nowrap">${catBadge}</td>
+                        <td class="p-4 font-mono font-bold text-[#1E2A4A]">
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span class="hover:underline cursor-pointer" title="${escapeHtml(a.full_url || a.url)}">${escapeHtml(a.url)}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 whitespace-nowrap font-bold text-slate-800">${escapeHtml(a.resource_name)}</td>
+                        <td class="p-4 whitespace-nowrap font-mono text-xs text-slate-500">${escapeHtml(a.ip || '192.168.1.100')}</td>
+                        <td class="p-4 whitespace-nowrap font-mono text-xs text-slate-500">${dateStr}</td>
+                        <td class="p-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                🚫 ${escapeHtml(a.action || 'Bloqueado')}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function switchM365ModalTab(viewName) {
+            ['mailboxes', 'sites', 'alerts'].forEach(v => {
+                document.getElementById(`m365-view-${v}`).classList.add('hidden');
+                const btn = document.getElementById(`m365-modal-tab-${v}`);
+                if (btn) btn.className = "px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-[#1E2A4A] transition-all cursor-pointer";
+            });
+
+            document.getElementById(`m365-view-${viewName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`m365-modal-tab-${viewName}`);
+            if (activeBtn) activeBtn.className = "px-4 py-2 border-b-2 border-[#EBB528] text-[#1E2A4A] bg-slate-50 rounded-t-lg font-extrabold cursor-pointer";
+        }
+
+        async function fetchAnalyticsCharts() {
+            try {
+                const res = await fetch(`${API_BASE}/api/analytics/charts`);
+                const data = await res.json();
+
+                // 1. Storage Workload
+                if (chartStorageWorkload && data.storage_by_workload) {
+                    chartStorageWorkload.data.labels = data.storage_by_workload.labels;
+                    chartStorageWorkload.data.datasets[0].data = data.storage_by_workload.data;
+                    chartStorageWorkload.update();
+                }
+
+                // 2. Timeline
+                if (chartAlertThreatTimeline && data.alert_threat_timeline) {
+                    chartAlertThreatTimeline.data.labels = data.alert_threat_timeline.labels;
+                    chartAlertThreatTimeline.data.datasets[0].data = data.alert_threat_timeline.critical_alerts;
+                    chartAlertThreatTimeline.data.datasets[1].data = data.alert_threat_timeline.threats_blocked;
+                    chartAlertThreatTimeline.update();
+                }
+
+                // 3. OS Distribution
+                if (chartOsDistribution && data.os_distribution) {
+                    chartOsDistribution.data.labels = data.os_distribution.labels;
+                    chartOsDistribution.data.datasets[0].data = data.os_distribution.data;
+                    chartOsDistribution.update();
+                }
+
+                // 4. Vulnerabilities
+                if (chartVulnerabilitySeverity && data.vulnerabilities_by_severity) {
+                    chartVulnerabilitySeverity.data.datasets[0].data = data.vulnerabilities_by_severity.critical;
+                    chartVulnerabilitySeverity.data.datasets[1].data = data.vulnerabilities_by_severity.high;
+                    chartVulnerabilitySeverity.data.datasets[2].data = data.vulnerabilities_by_severity.medium;
+                    chartVulnerabilitySeverity.data.datasets[3].data = data.vulnerabilities_by_severity.low;
+                    chartVulnerabilitySeverity.update();
+                }
+
+                // 5. Daily Protection Rate
+                if (chartProtectionSuccessRate && data.protection_success_rate) {
+                    chartProtectionSuccessRate.data.labels = data.protection_success_rate.labels;
+                    chartProtectionSuccessRate.data.datasets[0].data = data.protection_success_rate.success;
+                    chartProtectionSuccessRate.data.datasets[1].data = data.protection_success_rate.warning;
+                    chartProtectionSuccessRate.data.datasets[2].data = data.protection_success_rate.failed;
+                    chartProtectionSuccessRate.update();
+                }
+            } catch (e) {
+                console.error("Erro ao carregar gráficos de analytics:", e);
+            }
+        }
+
+        // Charts Initialization (Chart.js Light Mode)
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#475569', font: { family: 'Inter', size: 11, weight: 'bold' } }
+                    }
+                }
+            };
+
+            const ctxAlerts = document.getElementById('chartAlertSeverity').getContext('2d');
+            chartAlerts = new Chart(ctxAlerts, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Críticos', 'Avisos', 'Informativos'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#EF4444', '#EBB528', '#3B82F6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: chartOptions
+            });
+
+            const ctxRisk = document.getElementById('chartResourceRisk').getContext('2d');
+            chartRisk = new Chart(ctxRisk, {
+                type: 'bar',
+                data: {
+                    labels: ['Seguro', 'Atenção', 'Alto Risco'],
+                    datasets: [{
+                        label: 'Dispositivos',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#10B981', '#EBB528', '#EF4444'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: { ticks: { color: '#475569', font: { weight: 'bold' } }, grid: { display: false } },
+                        y: { ticks: { color: '#475569', precision: 0 }, grid: { color: '#E2E8F0' } }
+                    }
+                }
+            });
+
+            const ctxPolicy = document.getElementById('chartPolicyStatus').getContext('2d');
+            chartPolicy = new Chart(ctxPolicy, {
+                type: 'pie',
+                data: {
+                    labels: ['Protegidas (Com Plano)', 'Desprotegidas (Sem Plano)'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // 1. Storage Workload
+            const ctxStorage = document.getElementById('chartStorageWorkload').getContext('2d');
+            chartStorageWorkload = new Chart(ctxStorage, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Servidores', 'Estações', 'Mailboxes M365', 'SharePoint'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#1E2A4A', '#3B82F6', '#10B981', '#EBB528'],
+                        borderWidth: 0
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // 2. Timeline Alertas vs Ameaças
+            const ctxTimeline = document.getElementById('chartAlertThreatTimeline').getContext('2d');
+            chartAlertThreatTimeline = new Chart(ctxTimeline, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Alertas Críticos', data: [], borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Ameaças Barradas', data: [], borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: { ticks: { color: '#475569' }, grid: { display: false } },
+                        y: { ticks: { color: '#475569', precision: 0 }, grid: { color: '#E2E8F0' } }
+                    }
+                }
+            });
+
+            // 3. OS Distribution
+            const ctxOs = document.getElementById('chartOsDistribution').getContext('2d');
+            chartOsDistribution = new Chart(ctxOs, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Máquinas',
+                        data: [],
+                        backgroundColor: ['#1E2A4A', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { ticks: { color: '#475569', precision: 0 }, grid: { color: '#E2E8F0' } },
+                        y: { ticks: { color: '#475569', font: { weight: 'bold' } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 4. Vulnerabilities by Severity
+            const ctxVuln = document.getElementById('chartVulnerabilitySeverity').getContext('2d');
+            chartVulnerabilitySeverity = new Chart(ctxVuln, {
+                type: 'bar',
+                data: {
+                    labels: ['Servidores', 'Estações'],
+                    datasets: [
+                        { label: 'Crítico', data: [0, 0], backgroundColor: '#EF4444' },
+                        { label: 'Alto', data: [0, 0], backgroundColor: '#F97316' },
+                        { label: 'Médio', data: [0, 0], backgroundColor: '#EBB528' },
+                        { label: 'Baixo', data: [0, 0], backgroundColor: '#3B82F6' }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: { stacked: true, ticks: { color: '#475569', font: { weight: 'bold' } }, grid: { display: false } },
+                        y: { stacked: true, ticks: { color: '#475569' }, grid: { color: '#E2E8F0' } }
+                    }
+                }
+            });
+
+            // 5. Protection Success Rate
+            const ctxRate = document.getElementById('chartProtectionSuccessRate').getContext('2d');
+            chartProtectionSuccessRate = new Chart(ctxRate, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Sucesso %', data: [], backgroundColor: '#10B981' },
+                        { label: 'Aviso %', data: [], backgroundColor: '#EBB528' },
+                        { label: 'Falha %', data: [], backgroundColor: '#EF4444' }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: { ticks: { color: '#475569' }, grid: { display: false } },
+                        y: { ticks: { color: '#475569', max: 100 }, grid: { color: '#E2E8F0' } }
+                    }
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
