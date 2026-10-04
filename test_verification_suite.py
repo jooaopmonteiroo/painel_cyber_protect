@@ -184,12 +184,21 @@ def run_tests():
     import openpyxl, io
     wb = openpyxl.load_workbook(io.BytesIO(resp_exp.content))
     assert "Planos de Segurança" in wb.sheetnames
-    assert "Dispositivos e Cobertura" in wb.sheetnames
     ws_policies = wb["Planos de Segurança"]
-    ws_devices = wb["Dispositivos e Cobertura"]
     assert ws_policies.max_row >= 5
-    assert ws_devices.max_row >= 5
-    print(f"    -> PASSOU: Planilha XLSX gerada com abas '{wb.sheetnames}', formatação e dados oficiais ({ws_policies.max_row} linhas de planos, {ws_devices.max_row} linhas de dispositivos).")
+    expected_headers = [
+        "Nome do Plano",
+        "Status",
+        "Dispositivos Vinculados (Total)",
+        "Dispositivos OK",
+        "Dispositivos com Avisos",
+        "Dispositivos com Falhas",
+        "Módulos de Proteção Ativos",
+        "Data de Atualização"
+    ]
+    actual_headers = [ws_policies.cell(row=4, column=c).value for c in range(1, 9)]
+    assert actual_headers == expected_headers, f"Cabeçalhos incorretos: {actual_headers}"
+    print(f"    -> PASSOU: Planilha XLSX gerada com aba '{wb.sheetnames}', 8 colunas oficiais validadas e {ws_policies.max_row} linhas de dados.")
 
     print("\n" + "=" * 60)
     print("TODOS OS 18 TESTES END-TO-END PASSARAM COM 100% DE SUCESSO!")

@@ -877,29 +877,36 @@
                     <p class="text-xs text-slate-300">Mapeamento dinâmico da quantidade exata de dispositivos com planos ativos e desprotegidos</p>
                 </div>
 
-                <!-- 3 Cartões de Estatísticas + Botão Minimalista de Exportação Excel (Alinhamento & Proporção Perfeita) -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-                    <!-- Total de Políticas -->
-                    <div class="w-full sm:min-w-[125px] h-[76px] bg-white/10 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-white/15 dark:border-slate-700/60 flex flex-col justify-center items-center text-center shadow-sm">
-                        <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider block">Total Políticas</span>
-                        <strong id="summaryTotalPolicies" class="text-xl sm:text-2xl font-black text-white leading-tight">0</strong>
+                <!-- 3 Cartões de Estatísticas + Botão Compacto de Ação Secundária -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    <!-- 3 Cards Numéricos de Estatísticas -->
+                    <div class="grid grid-cols-3 gap-2.5 w-full sm:w-auto">
+                        <!-- Total de Políticas -->
+                        <div class="w-full sm:min-w-[105px] h-[58px] bg-white/10 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-white/15 dark:border-slate-700/60 flex flex-col justify-center items-center text-center shadow-sm">
+                            <span class="text-[9px] text-slate-300 font-bold uppercase tracking-wider block">Total Políticas</span>
+                            <strong id="summaryTotalPolicies" class="text-lg font-black text-white leading-tight">0</strong>
+                        </div>
+                        <!-- Máquinas Protegidas -->
+                        <div class="w-full sm:min-w-[105px] h-[58px] bg-emerald-950/70 dark:bg-emerald-950/50 px-3 py-1.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm">
+                            <span class="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">Protegidas</span>
+                            <strong id="summaryProtectedMachines" class="text-lg font-black text-emerald-400 leading-tight">0</strong>
+                        </div>
+                        <!-- Máquinas Desprotegidas -->
+                        <div class="w-full sm:min-w-[105px] h-[58px] bg-red-950/70 dark:bg-red-950/50 px-3 py-1.5 rounded-xl border border-red-500/40 flex flex-col justify-center items-center text-center shadow-sm">
+                            <span class="text-[9px] text-red-300 font-bold uppercase tracking-wider block">Desprotegidas</span>
+                            <strong id="summaryUnprotectedMachines" class="text-lg font-black text-red-400 leading-tight">0</strong>
+                        </div>
                     </div>
-                    <!-- Máquinas Protegidas -->
-                    <div class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/80 dark:bg-emerald-950/60 px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm">
-                        <span class="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Protegidas</span>
-                        <strong id="summaryProtectedMachines" class="text-xl sm:text-2xl font-black text-emerald-400 leading-tight">0</strong>
-                    </div>
-                    <!-- Máquinas Desprotegidas -->
-                    <div class="w-full sm:min-w-[125px] h-[76px] bg-red-950/80 dark:bg-red-950/60 px-3.5 py-2.5 rounded-xl border border-red-500/40 flex flex-col justify-center items-center text-center shadow-sm">
-                        <span class="text-[10px] text-red-300 font-bold uppercase tracking-wider block">Desprotegidas</span>
-                        <strong id="summaryUnprotectedMachines" class="text-xl sm:text-2xl font-black text-red-400 leading-tight">0</strong>
-                    </div>
-                    <!-- Botão Minimalista de Exportação Excel -->
+
+                    <!-- Botão Compacto de Ação Secundária (Fundo Azul-Escuro Suave, Borda Discreta, Texto Claro) -->
                     <a id="btnExportPoliciesExcel" href="/api/policies/export" download="Relatorio_Planos_Seguranca_Acronis.xlsx" onclick="showRefreshToast('Baixando relatório executivo Excel (.xlsx)...', 2500)"
-                        class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/70 hover:bg-emerald-900/80 active:scale-95 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm transition-all cursor-pointer group no-underline"
-                        title="Baixar planilha Excel (.xlsx) com o relatório detalhado de cobertura">
-                        <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform mb-1"></i>
-                        <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Exportar XLSX</span>
+                        class="w-full sm:w-auto h-[58px] px-4 bg-slate-900/50 hover:bg-slate-800/80 active:scale-95 text-slate-200 hover:text-white rounded-xl border border-slate-700/80 hover:border-slate-500 flex items-center justify-center gap-2.5 transition-all cursor-pointer group shadow-sm no-underline shrink-0"
+                        title="Baixar planilha Excel (.xlsx) contendo os dados dos Planos de Segurança">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform shrink-0"></i>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-100 group-hover:text-white block leading-tight">Exportar XLSX</span>
+                            <span class="text-[10px] text-slate-400 group-hover:text-slate-300 block font-normal leading-tight">Relatório de Planos</span>
+                        </div>
                     </a>
                 </div>
             </div>
