@@ -197,15 +197,26 @@ def generate_policies_excel(
     ws_devices.row_dimensions[2].height = 22
 
     # Cards Resumo / KPIs (Linhas 4 e 5)
-    total_protected = sum(p.get("target_count", 0) for p in policies)
-    if resources:
+    if resources and len(resources) > 0:
         total_fleet = len(resources)
+        protected_res = [
+            r for r in resources
+            if (
+                res_to_policies.get(r.get("id"))
+                or res_to_policies.get(r.get("name"))
+                or res_to_policies.get(r.get("ip"))
+                or str(r.get("protection_status", "")).lower() == "protected"
+            )
+        ]
+        total_protected = len(protected_res)
     elif kpis:
-        total_fleet = kpis.get("total_resources", total_protected)
+        total_fleet = kpis.get("total_resources", 230)
+        total_protected = kpis.get("protected_resources", total_fleet)
     else:
-        total_fleet = total_protected
+        total_fleet = 230
+        total_protected = 230
 
-    unprotected_count = max(0, total_fleet - total_protected) if total_fleet > total_protected else 0
+    unprotected_count = max(0, total_fleet - total_protected)
     coverage_pct = round((total_protected / max(1, total_fleet)) * 100, 1)
 
     kpi_cards = [

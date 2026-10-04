@@ -895,12 +895,12 @@
                         <strong id="summaryUnprotectedMachines" class="text-xl sm:text-2xl font-black text-red-400 leading-tight">0</strong>
                     </div>
                     <!-- Botão Minimalista de Exportação Excel -->
-                    <button id="btnExportPoliciesExcel" onclick="exportPoliciesToExcel()" 
-                        class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/70 hover:bg-emerald-900/80 active:scale-95 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm transition-all cursor-pointer group"
+                    <a id="btnExportPoliciesExcel" href="/api/policies/export" download="Relatorio_Planos_Seguranca_Acronis.xlsx" onclick="showRefreshToast('Baixando relatório executivo Excel (.xlsx)...', 2500)"
+                        class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/70 hover:bg-emerald-900/80 active:scale-95 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm transition-all cursor-pointer group no-underline"
                         title="Baixar planilha Excel (.xlsx) com o relatório detalhado de cobertura">
                         <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform mb-1"></i>
                         <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Exportar XLSX</span>
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -2301,6 +2301,22 @@
             return 'Proteção Corporativa';
         }
 
+        function formatModuleName(rawMod) {
+            if (!rawMod) return '';
+            const m = String(rawMod).trim().toLowerCase();
+            if (m.includes('antimalware')) return 'Antimalware em Tempo Real';
+            if (m.includes('active') || (m.includes('protection') && !m.includes('anti'))) return 'Proteção Ativa Ransomware';
+            if (m.includes('backup') && !m.includes('scan')) return 'Backup Corporativo';
+            if (m.includes('scan')) return 'Varredura de Backups';
+            if (m.includes('url')) return 'Filtro Web';
+            if (m.includes('patch')) return 'Gestão de Patches';
+            if (m.includes('vuln')) return 'Análise de Vulnerabilidades';
+            if (m.includes('edr') || m.includes('detection')) return 'Detecção e Resposta (EDR)';
+            if (m.includes('generative')) return 'Proteção GenAI';
+            if (m.includes('storage') || m.includes('sync')) return 'Sincronização Nuvem';
+            return escapeHtml(rawMod);
+        }
+
         function renderPoliciesGrid(policies) {
             const grid = document.getElementById('policiesGrid');
             // Garante que apenas planos com dispositivos vinculados sejam renderizados
@@ -2311,7 +2327,7 @@
             }
 
             grid.innerHTML = activePlans.map((p, index) => {
-                const modulesList = p.modules ? p.modules.map(m => `<span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold border border-slate-200 dark:border-slate-700">${escapeHtml(m)}</span>`).join(' ') : '';
+                const modulesList = p.modules ? p.modules.map(m => `<span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold border border-slate-200 dark:border-slate-700">${formatModuleName(m)}</span>`).join(' ') : '';
                 const isSuccess = p.last_run_status === 'success';
                 const bk = p.status_breakdown || {success: p.target_count, warning: 0, failed: 0};
 
