@@ -1,9 +1,9 @@
-import sys
+import io
+import openpyxl
 from fastapi.testclient import TestClient
 from app import app as main_app
 from admin_server import app as admin_app
 from config import Config
-import auth
 
 def run_tests():
     print("=" * 60)
@@ -40,7 +40,7 @@ def run_tests():
     assert resp.status_code == 200, f"Esperado 200, obtido {resp.status_code}: {resp.text}"
     session_cookie = resp.cookies.get("cyber_session_id")
     assert session_cookie, "Cookie de sessão cyber_session_id não foi retornado"
-    print(f"    -> PASSOU: Login bem-sucedido. Cookie de sessão obtido.")
+    print("    -> PASSOU: Login bem-sucedido. Cookie de sessão obtido.")
 
     # 5. Teste de Acesso Autenticado com Cookie de Sessão
     print("[5] Testando acesso ao dashboard principal com cookie de sessão...")
@@ -181,7 +181,6 @@ def run_tests():
     assert "attachment" in resp_exp.headers.get("content-disposition", "")
     assert ".xlsx" in resp_exp.headers.get("content-disposition", "")
     
-    import openpyxl, io
     wb = openpyxl.load_workbook(io.BytesIO(resp_exp.content))
     assert "Planos de Segurança" in wb.sheetnames
     ws_policies = wb["Planos de Segurança"]
