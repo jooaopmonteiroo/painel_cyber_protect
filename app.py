@@ -384,6 +384,28 @@ async def export_policies_excel():
         }
     )
 
+@app.get("/api/policies/documentation/download", dependencies=[Depends(require_auth)])
+async def download_policies_documentation():
+    """
+    Exporta a documentação técnica oficial e analítica completa dos Planos de Segurança em formato Markdown (.md).
+    """
+    doc_path = os.path.join(os.path.dirname(__file__), "PLANOS_SEGURANCA_DOCUMENTACAO.md")
+    if not os.path.exists(doc_path):
+        raise HTTPException(status_code=404, detail="Documento de especificações não encontrado.")
+    
+    with open(doc_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    filename = "JM_Cyber_Protect_Documentacao_Planos_Seguranca.md"
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache"
+        }
+    )
+
 @app.get("/api/m365/summary", dependencies=[Depends(require_auth)])
 async def get_m365_summary():
     """Retorna métricas consolidadas do ambiente Microsoft 365 Cloud."""

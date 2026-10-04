@@ -199,8 +199,17 @@ def run_tests():
     assert actual_headers == expected_headers, f"Cabeçalhos incorretos: {actual_headers}"
     print(f"    -> PASSOU: Planilha XLSX gerada com aba '{wb.sheetnames}', 8 colunas oficiais validadas e {ws_policies.max_row} linhas de dados.")
 
+    # 19. Teste de Download da Documentação Técnica de Planos de Segurança (.md)
+    print("[19] Testando exportação da documentação técnica e analítica dos planos (.md)...")
+    resp_doc = main_client.get("/api/policies/documentation/download")
+    assert resp_doc.status_code == 200
+    assert "text/markdown" in resp_doc.headers.get("content-type", "")
+    assert "JM CYBER PROTECT" in resp_doc.text
+    assert "Backup Contas 365" in resp_doc.text
+    print(f"    -> PASSOU: Documentação técnica exportada com {len(resp_doc.text)} caracteres e todas as 17 políticas mapeadas.")
+
     print("\n" + "=" * 60)
-    print("TODOS OS 18 TESTES END-TO-END PASSARAM COM 100% DE SUCESSO!")
+    print("TODOS OS 19 TESTES END-TO-END PASSARAM COM 100% DE SUCESSO!")
     print("=" * 60)
 
 if __name__ == "__main__":

@@ -898,6 +898,17 @@
                         </div>
                     </div>
 
+                    <!-- Botão de Documentação Técnica e Arquitetura dos Planos -->
+                    <button id="btnOpenPoliciesDoc" type="button" onclick="openPoliciesDocModal()"
+                        class="w-full sm:w-auto h-[58px] px-4 bg-slate-900/50 hover:bg-slate-800/80 active:scale-95 text-slate-200 hover:text-white rounded-xl border border-blue-500/40 hover:border-blue-400 flex items-center justify-center gap-2.5 transition-all cursor-pointer group shadow-sm shrink-0"
+                        title="Consultar Documentação Técnica e Arquitetura dos Planos">
+                        <i data-lucide="book-open" class="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform shrink-0"></i>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-100 group-hover:text-white block leading-tight">Documentação</span>
+                            <span class="text-[10px] text-blue-300 group-hover:text-blue-200 block font-normal leading-tight">Técnica &amp; Módulos</span>
+                        </div>
+                    </button>
+
                     <!-- Botão Compacto de Ação Secundária (Fundo Azul-Escuro Suave, Borda Discreta, Texto Claro) -->
                     <a id="btnExportPoliciesExcel" href="/api/policies/export" download="Relatorio_Planos_Seguranca_Acronis.xlsx" onclick="showRefreshToast('Baixando relatório executivo Excel (.xlsx)...', 2500)"
                         class="w-full sm:w-auto h-[58px] px-4 bg-slate-900/50 hover:bg-slate-800/80 active:scale-95 text-slate-200 hover:text-white rounded-xl border border-slate-700/80 hover:border-slate-500 flex items-center justify-center gap-2.5 transition-all cursor-pointer group shadow-sm no-underline shrink-0"
@@ -1336,6 +1347,914 @@
 
         </div>
     </div>
+
+    
+    <!-- ================= MODAL: DOCUMENTAÇÃO TÉCNICA E ARQUITETURA DE PLANOS DE SEGURANÇA ================= -->
+    <div id="policiesDocModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h3 class="text-base font-extrabold text-white">Documentação Técnica & Arquitetura dos Planos de Segurança</h3>
+                            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">17 Políticas Oficiais</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">790 Alvos Ativos</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Mapeamento exaustivo de escopos, módulos operacionais, finalidades práticas e justificativas de risco de segurança</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="/api/policies/documentation/download" download="JM_Cyber_Protect_Documentacao_Planos_Seguranca.md"
+                        class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all no-underline shadow-sm"
+                        title="Baixar a documentação técnica oficial completa em formato Markdown (.md)">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Exportar (.md)</span>
+                    </a>
+                    <button onclick="closePoliciesDocModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Search & Navigation Bar -->
+            <div class="px-6 py-3 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div class="relative flex-1 min-w-[280px]">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input id="docSearchInput" type="text" onkeyup="filterDocCards(this.value)" placeholder="Pesquisar por plano, departamento, módulo (ex: EDR, M365, Ransomware, Financeiro)..."
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div class="flex items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                    <button onclick="switchDocTab('plans')" id="docTabBtnPlans" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm">
+                        Planos de Proteção (17)
+                    </button>
+                    <button onclick="switchDocTab('modules')" id="docTabBtnModules" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                        Dicionário de Módulos (11)
+                    </button>
+                    <button onclick="switchDocTab('compliance')" id="docTabBtnCompliance" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                        Conformidade (NIST/LGPD)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Scrollable Body -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 text-slate-200 text-xs leading-relaxed custom-scrollbar">
+                
+                <!-- ABA 1: CATÁLOGO DOS 17 PLANOS DE SEGURANÇA -->
+                <div id="doc-view-plans" class="space-y-4">
+                    <div class="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
+                        <span>Listando políticas corporativas com telemetria ativa na API oficial Acronis Cyber Protect Cloud:</span>
+                        <span id="docFilteredCount" class="font-mono text-blue-400 font-bold">17 de 17 políticas visíveis</span>
+                    </div>
+
+                    <div id="docPlansContainer" class="grid grid-cols-1 gap-4">
+                        <!-- Card 1 -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="backup contas 365 m365 exchange onedrive sharepoint teams cloud edr ransomware email">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">01</span>
+                                    <h4 class="text-sm font-extrabold text-white">Backup Contas 365</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">453 Caixas/Contas</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">253 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">159 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-red-950/40 text-red-300 border border-red-800/40">41 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Caixas de correio corporativas Exchange Online, repositórios de arquivos OneDrive for Business, sites SharePoint e canais do Microsoft Teams de toda a diretoria e colaboradores da JM Distribuição.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <span class="px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[10px]">Cloud Backup M365</span>
+                                        <span class="px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 border border-purple-700/50 text-[10px]">Active Protection</span>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 text-[10px]">Antimalware NGAV</span>
+                                        <span class="px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/50 text-[10px]">EDR Avançado</span>
+                                        <span class="px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300 border border-cyan-700/50 text-[10px]">Filtro Web</span>
+                                        <span class="px-2 py-0.5 rounded bg-rose-900/40 text-rose-300 border border-rose-700/50 text-[10px]">Proteção GenAI</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Realiza o backup automático diário de todas as caixas postais, mensagens, anexos e arquivos na nuvem Acronis Tier-IV, permitindo restauração granular de e-mails excluídos e inspeção antimalware direta nas caixas.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">O modelo de responsabilidade compartilhada da Microsoft define que a integridade e guarda histórica dos dados é do cliente. Protege a JM contra sequestro de caixas postais (BEC), exclusões maliciosas e atende às exigências de conformidade da LGPD.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="acesso remoto jm rdp home office laptop vpn suporte">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">02</span>
+                                    <h4 class="text-sm font-extrabold text-white">Acesso Remoto JM</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">167 Máquinas</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">165 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">2 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Laptops e estações móveis de colaboradores em regime híbrido/externo, conexões de suporte remoto e terminais fora do perímetro seguro da sede.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <span class="px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 border border-purple-700/50 text-[10px]">Active Protection Heurístico</span>
+                                        <span class="px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[10px]">Backup Contínuo</span>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 text-[10px]">Cloud Storage Sync</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege estações remotas contra ransomwares mesmo fora da rede corporativa e sincroniza continuamente os arquivos de trabalho criados localmente com o storage seguro.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Endpoints remotos usam redes Wi-Fi domésticas desprovidas de firewall perimetral. O Active Protection garante que nenhum processo sequestre arquivos locais e o backup contínuo anula o risco de perda por furto ou pane de hardware.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect jm matriz sede estacoes suite completa edr patch">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">03</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect JM (Matriz / Sede Administrativa)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">85 Dispositivos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">49 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">34 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-red-950/40 text-red-300 border border-red-800/40">2 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Parque computacional da sede administrativa da JM Distribuição (estações de trabalho locais, departamentos administrativos e operacionais da matriz).</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <span class="px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 text-[10px]">Suíte Completa Acronis</span>
+                                        <span class="px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 border border-purple-700/50 text-[10px]">EDR Avançado</span>
+                                        <span class="px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300 border border-cyan-700/50 text-[10px]">Gestão de Patches</span>
+                                        <span class="px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/50 text-[10px]">Filtro de URLs</span>
+                                        <span class="px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[10px]">Varredura Backups</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Proteção perimetral e interna completa com bloqueio de sites impróprios, fechamento automatizado de vulnerabilidades de software e detecção em tempo real de tentativas de intrusão com contenção imediata via EDR.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">A matriz concentra o maior número de computadores conectados na mesma sub-rede. Uma infecção não contida nessa rede causaria alastramento horizontal imediato para servidores e sistemas fiscais.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Protect Line Haul -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect line haul transferencia interestadual logistica transporte carretas">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">04</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Line Haul (Transferência Interestadual)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">22 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">11 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">11 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Terminais operacionais de transporte de longa distância (*Line Haul*), interligando filiais, hubs de transbordo e centros de distribuição interestaduais.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs, Avaliação de Vulnerabilidades e Backup de Configurações.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Assegura a disponibilidade contínua dos softwares de escalonamento de viagens, controle de janelas de trânsito e documentação de transferência de carga pesada.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Paralisações em terminais de Line Haul geram atrasos em cascata em toda a malha logística e multas contratuais severas com grandes contratantes da indústria.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 5: Protect Last Mile -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect last mile entrega final expedicao roteirizacao vans distribuicao">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">05</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Last Mile (Expedição &amp; Entrega Final)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">12 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">6 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">6 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Terminais de expedição urbana, roteirização de rotas de entrega e sincronização de aplicativos de motoristas de última milha (*Last Mile*).</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs, Avaliação de Vulnerabilidades e Backup Contínuo.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege os computadores que realizam a conferência de romaneios de entrega, sincronizam baixas no sistema e leem comprovantes digitais de entrega.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Interrupções no Last Mile afetam diretamente o consumidor final, gerando falhas em SLAs de *same-day delivery* e expondo dados cadastrais de recebedores de encomendas.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 6: Protect First Mile -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect first mile coleta triagem recepcao encomendas armazem">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">06</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect First Mile (Recepção &amp; Triagem Inicial)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">10 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">9 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">1 Aviso</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Computadores industriais de docas de recebimento, balanças rodoviárias, cubagem automatizada e etiquetas de rastreamento de cargas (*First Mile*).</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs, Avaliação de Vulnerabilidades e Backup de Imagem.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Assegura o registro inicial e pesagem de cada carga na entrada do armazém com comunicação direta aos bancos de dados de conferência.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Computadores em docas conectam dispositivos seriais, balanças e pendrives de motoristas terceirizados, constituindo portas de entrada comuns de malwares por mídias físicas.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 7: Protect GRIS -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-red-500/50 rounded-2xl space-y-3 transition-all" data-search="protect gris gerenciamento de risco rastreamento satelite escolta cargas perigo">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 font-black text-xs flex items-center justify-center border border-red-500/30">07</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect GRIS (Gerenciamento de Risco &amp; Segurança Patrimonial)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30">Criticidade Máxima</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">9 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">7 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">2 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-red-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Computadores e telas da Central de Gerenciamento de Risco (GRIS), responsáveis pelo rastreamento via satélite, telemetria de sensores de carretas e acionamento de escolta.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-red-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR com Resposta Automática, Patch Management, Filtro de Conteúdo Web e Backup Criptografado.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Garante disponibilidade 24/7/365 e monitoramento imutável de frotas transportando cargas de altíssimo valor agregado (eletrônicos, farmacêuticos, insumos químicos).</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-red-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Uma intrusão no GRIS poderia permitir que criminosos desativassem travas de baú, mascarassem posições GPS ou apagassem rotas de alerta, facilitando roubo de cargas. Proteção e EDR mandatórios por apólices de seguro.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 8: Protect TI -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-purple-500/50 rounded-2xl space-y-3 transition-all" data-search="protect ti tecnologia da informacao analistas desenvolvedores admin credenciais senhas">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 font-black text-xs flex items-center justify-center border border-purple-500/30">08</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect TI (Tecnologia da Informação &amp; Infraestrutura)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">Privilegiado</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">7 Estações</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">6 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">1 Aviso</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-purple-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Estações dos analistas de sistemas, suporte, administradores de rede e engenheiros de infraestrutura de TI da JM.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-purple-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR Avançado (análise profunda de processos), Patch Management, Filtro de URLs e Backup de Imagem.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege estações que manipulam credenciais privilegiadas, acessos SSH/VPN, firewalls e repositórios de código contra roubo de tokens e backdoors.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-purple-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Contas de administradores de TI são o "Santo Graal" para atacantes. O EDR ativo detecta qualquer tentativa de injeção em memória, dump de senhas (LSASS) ou sequestro de chaves de API.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 9: Protect Qualidade -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect qualidade compliance auditoria iso slas relatorios processos">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">09</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Qualidade (Auditoria &amp; Compliance)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">6 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">3 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">3 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Estações do time de Gestão de Qualidade, SLA de clientes, auditoria de cargas avariadas e certificações regulatórias.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs e Backup Criptografado.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Preserva a integridade de planilhas de auditoria, relatórios de não-conformidade e bases de avaliação de serviço de transporte.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Evita adulteração de laudos de auditoria de avarias e garante guarda imutável de relatórios exigidos por clientes e auditorias ISO.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 10: Protect Emissoes -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 rounded-2xl space-y-3 transition-all" data-search="protect emissoes faturamento cte mdfe nfe fiscal sefaz certificado digital tributario">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/30">10</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Emissões (Faturamento Fiscal • CT-e &amp; MDF-e)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Fiscal Crítico</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">6 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">4 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">2 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Terminais com certificados digitais corporativos (A1/A3) dedicados à emissão de Conhecimento de Transporte (CT-e), Manifesto Eletrônico (MDF-e) e Notas Fiscais.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs e Backup de Imagem.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Assegura comunicação contínua com os web services da SEFAZ e impede paralisação na expedição e faturamento de transportes.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Nenhuma carreta pode circular sem CT-e/MDF-e autorizados sob risco de apreensão do veículo e multas pesadas. Além disso, protege o certificado digital corporativo contra exportação ou roubo.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 11: Protect Frota -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect frota oficina manutencao caminhoes abastecimento pneus veiculos">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">11</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Frota (Manutenção &amp; Gestão de Veículos)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Ativo</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">4 Terminais</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">1 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">3 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Terminais da oficina mecânica interna, postos de abastecimento e almoxarifado de peças automotivas.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs e Backup Criptografado.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Registra manutenções preventivas, controle de quilometragem e consumo de combustível dos cavalos mecânicos e implementos rodoviários.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Computadores em áreas industriais e de oficina são operados por múltiplos usuários e suscetíveis a navegação desprotegida e vírus transmitidos via pendrives.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 12: Protect Financeiro -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-amber-500/50 rounded-2xl space-y-3 transition-all" data-search="protect financeiro banco contas a pagar receber tesouraria cnab banking trojan boletos">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">12</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Financeiro (Tesouraria &amp; Conciliação Bancária)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">Alto Risco Financeiro</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">4 Estações</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 OK</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">4 Avisos</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-slate-500">0 Falhas</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Estações do setor financeiro, tesouraria, contas a pagar/receber, conciliação e geração de arquivos de remessa bancária (CNAB).</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR Avançado, Patch Management, Filtro Web Anti-Phishing e Backup Criptografado.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege operações de Internet Banking, pagamentos de motoristas terceiros e bloqueia alterações maliciosas em códigos de barras de boletos.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Alvo primário de cavalos de Troia bancários e fraudes de substituição de dados de pagamento (Man-in-the-Browser). O filtro web anti-phishing e o EDR barram qualquer tentativa de adulteração de transações.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 13: SIEM JM TRANSPORTES -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="siem jm transportes servidor logs auditoria telemetria integridade eventos">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">13</span>
+                                    <h4 class="text-sm font-extrabold text-white">SIEM JM TRANSPORTES (Servidor Central de Logs &amp; Auditoria)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Servidor Core</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">1 Servidor</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">1 OK</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Servidor centralizador de logs de segurança, eventos de firewalls, telemetria de rede e trilhas de auditoria de acessos.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Active Protection Heurístico, Backup Contínuo de Arquivos de Log e Sincronização Criptografada em Nuvem.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Assegura o envio em tempo real de logs de auditoria para o storage em nuvem imutável, garantindo que trilhas de eventos não sejam alteradas.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-blue-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Durante um ataque avançado, hackers tentam limpar logs para apagar evidências. A sincronização contínua na nuvem garante a preservação da cadeia de custódia e investigação pericial forense.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 14: Protect Server -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-blue-500/50 rounded-2xl space-y-3 transition-all" data-search="protect server servidor producao infraestrutura core banco de dados erp">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 font-black text-xs flex items-center justify-center border border-blue-500/30">14</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Server (Servidor Principal de Infraestrutura Core)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Servidor Core</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">1 Servidor</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">1 OK</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Servidor operacional central da JM, hospedando serviços essenciais, banco de dados corporativo e compartilhamento de arquivos de rede.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs, Avaliação de Vulnerabilidades e Backup Completo de Sistema.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege o coração operacional da empresa contra ransomware e executa backup de imagem de disco integral (*Bare-Metal Recovery*).</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-blue-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">A perda ou corrupção deste servidor paralisaria toda a empresa. As camadas de proteção bloqueiam execução de binários suspeitos e garantem restauração completa em caso de pane catastrófica.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 15: Protect RH -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 rounded-2xl space-y-3 transition-all" data-search="protect rh recursos humanos folha funcionarios lgpd privacidade dados pessoais">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/30">15</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect RH (Recursos Humanos &amp; Conformidade LGPD)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LGPD Estrita</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">1 Estação</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">1 OK</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Estação de trabalho do departamento de Recursos Humanos, responsável por admissões, demissões, atestados e prontuários de motoristas e funcionários.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR, Patch Management, Filtro de URLs e Backup Criptografado AES-256.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Protege os documentos pessoais e bancários de colaboradores contra cópias não autorizadas e vazamentos de dados.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Conformidade mandatória com a Lei Geral de Proteção de Dados (LGPD). O vazamento de dados de saúde ou identificadores de funcionários sujeita a organização a multas administrativas da ANPD e ações trabalhistas.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 16: Protect Quarentena -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-amber-500/50 rounded-2xl space-y-3 transition-all" data-search="protect quarentena sandbox isolamento testes suspeitos analise">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">16</span>
+                                    <h4 class="text-sm font-extrabold text-white">Protect Quarentena (Host de Isolamento &amp; Sandbox de Análise)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">Ambiente Controlado</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">1 Máquina</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40">1 Aviso</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Estação de trabalho isolada da rede corporativa principal, utilizada pelo time de segurança para análise de incidentes e detonação de amostras suspeitas.</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Suíte Completa Acronis: Active Protection, NGAV, EDR com Gravação de Eventos, Patch Management e Backup de Restauração Rápida.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Permite inspecionar artefatos maliciosos e testar softwares duvidosos sem qualquer risco de contaminação cruzada para a rede de produção.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-amber-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Disponibiliza capacidade de resposta a incidentes (Incident Response) local e validação forense imediata sem recorrer a serviços de terceiros.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 17: Plano de integracao - jm.corp -->
+                        <div class="doc-card p-5 bg-slate-950/60 border border-slate-800 hover:border-red-500/50 rounded-2xl space-y-3 transition-all" data-search="plano de integracao jm.corp active directory dominio controlador ad gpo autenticacao">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 font-black text-xs flex items-center justify-center border border-red-500/30">17</span>
+                                    <h4 class="text-sm font-extrabold text-white">Plano de integração - jm.corp (Active Directory &amp; Domínio de Rede)</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30">Autenticação Core</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 font-bold">1 Controlador</span>
+                                    <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-red-950/40 text-red-300 border border-red-800/40">1 Falha (Atenção)</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-red-400"></i> Nome &amp; Escopo Operacional:</strong>
+                                    <p class="text-slate-400">Nó de integração e sincronização do domínio Microsoft Active Directory (jm.corp), controlador de autenticação, DNS e diretivas de grupo (GPOs).</p>
+                                </div>
+                                <div>
+                                    <strong class="text-slate-300 flex items-center gap-1.5 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-red-400"></i> Funções &amp; Módulos Ativos:</strong>
+                                    <p class="text-slate-400">Active Protection Heurístico, Backup Contínuo da base do Active Directory (NTDS.dit) e Cloud Storage Sync Criptografado.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-emerald-400 flex items-center gap-1.5 mb-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Finalidade Prática ("Para que serve"):</strong>
+                                    <p class="text-slate-300 text-[11px]">Realiza cópias contínuas do banco de contas, senhas e permissões de toda a rede para permitir recuperação rápida do domínio corporativo.</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                                    <strong class="text-red-400 flex items-center gap-1.5 mb-1"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Justificativa de Segurança ("Por que está ativo"):</strong>
+                                    <p class="text-slate-300 text-[11px]">O controlador de domínio é a estrutura central de confiança da rede. Se for corrompido ou criptografado por atacantes, nenhuma máquina da rede consegue autenticar usuários. O backup contínuo anula a necessidade de recriação manual do domínio.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ABA 2: DICIONÁRIO DOS 11 MÓDULOS DE PROTEÇÃO -->
+                <div id="doc-view-modules" class="hidden space-y-4">
+                    <div class="text-xs text-slate-400 pb-2 border-b border-slate-800">
+                        Catálogo funcional e descritivo dos 11 motores tecnológicos em execução no agente corporativo Acronis:
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Modulo 1 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-purple-400 font-bold">
+                                <i data-lucide="shield-zap" class="w-4 h-4"></i>
+                                <span>1. Active Protection (Anti-Ransomware com IA)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Monitora o comportamento de processos no nível de kernel em tempo real. Identifica tentativas de criptografia em massa ou alteração do MBR/VSS.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Interrupção instantânea do processo cripto-malicioso e reversão automática (*rollback*) de arquivos alterados a partir de cache de memória seguro.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Mitigação de ameaças zero-day antes mesmo da existência de uma vacina ou assinatura estática.</p>
+                        </div>
+
+                        <!-- Modulo 2 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                <span>2. Antimalware em Tempo Real (NGAV)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Motor duplo que combina heurística comportamental com base global de inteligência de ameaças em nuvem.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Varredura de arquivos criados, baixados ou executados e inspeção proativa de memória RAM.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Impede a instalação de trojans, spywares, scripts maliciosos ofuscados e malwares furtivos.</p>
+                        </div>
+
+                        <!-- Modulo 3 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-rose-400 font-bold">
+                                <i data-lucide="crosshair" class="w-4 h-4"></i>
+                                <span>3. Endpoint Detection and Response (EDR)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Coleta e correlaciona eventos de processos, rede e registro, alinhando alertas à taxonomia MITRE ATT&CK.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Visibilidade forense fim-a-fim da cadeia de ataque, permitindo isolamento de host da rede e contenção imediata.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Detecção de invasores humanos em tempo real e ataques *living-off-the-land* que usam ferramentas legítimas do Windows.</p>
+                        </div>
+
+                        <!-- Modulo 4 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-cyan-400 font-bold">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                <span>4. Gestão de Patches (Patch Management)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Automatiza a distribuição de correções para Windows e mais de 300 aplicações de terceiros (Chrome, Edge, Adobe, Java, AnyDesk).</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Aplicação programada de atualizações de segurança fora do horário comercial com pré-backup de restauração.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Fecha as portas de entrada mais comuns exploradas por cibercriminosos para movimentação lateral e elevação de privilégio.</p>
+                        </div>
+
+                        <!-- Modulo 5 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-amber-400 font-bold">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                                <span>5. Avaliação de Vulnerabilidades (Vulnerability Assessment)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Scanner leve que audita continuamente o parque de computadores contra a base nacional de vulnerabilidades (NVD / CVE).</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Mapeamento do nível de risco e pontuação CVSS de cada estação de trabalho da empresa.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Prioriza ações corretivas da equipe de TI antes que vulnerabilidades conhecidas sejam exploradas por invasores.</p>
+                        </div>
+
+                        <!-- Modulo 6 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-blue-400 font-bold">
+                                <i data-lucide="globe" class="w-4 h-4"></i>
+                                <span>6. Filtro de Conteúdo Web (URL Filtering)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Driver WFP de rede que inspeciona requisições web HTTP/HTTPS e bloqueia endereços categorizados como perigosos.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Bloqueio automático de sites de phishing, servidores de Comando e Controle (C2) e páginas fraudulentas.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Mais de 85% das infecções têm origem em links maliciosos abertos por usuários desatentos em e-mails e mensagens.</p>
+                        </div>
+
+                        <!-- Modulo 7 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-teal-400 font-bold">
+                                <i data-lucide="shield" class="w-4 h-4"></i>
+                                <span>7. Varredura Antimalware de Backups (Backups Scanning)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> O storage em nuvem Acronis escaneia automaticamente os pontos de restauração recém-gerados com motor antivírus central.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Assegura que nenhum backup guarde códigos maliciosos dormentes.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Previne o ciclo de reinfeção (*reinfection loop*), garantindo que ao restaurar uma máquina o malware original não retorne.</p>
+                        </div>
+
+                        <!-- Modulo 8 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-indigo-400 font-bold">
+                                <i data-lucide="bot" class="w-4 h-4"></i>
+                                <span>8. Proteção para IA Generativa (GenAI Protection)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Regras de inspeção de tráfego para ferramentas de inteligência artificial (ChatGPT, Claude, Copilot, etc.).</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Previne vazamento de dados confidenciais de faturamento e clientes através de prompts de IA pública.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Atendimento direto aos requisitos da LGPD e preservação de segredos operacionais da JM.</p>
+                        </div>
+
+                        <!-- Modulo 9 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-sky-400 font-bold">
+                                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                                <span>9. Integração com Windows Defender</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Orquestração centralizada das políticas nativas do Windows Defender pelo console unificado Acronis.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Evita colisões de drivers de antivírus e garante que as defesas nativas permaneçam ativas.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Impede que vírus ou usuários locais desativem os componentes de segurança do sistema operacional.</p>
+                        </div>
+
+                        <!-- Modulo 10 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-orange-400 font-bold">
+                                <i data-lucide="folder-search" class="w-4 h-4"></i>
+                                <span>10. Mapa de Proteção de Dados (Data Protection Map)</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Scanner que cataloga arquivos corporativos nos discos rígidos e cruza com os planos de backup.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> Identifica pastas e arquivos que contêm dados críticos mas não estão contemplados em rotinas de backup.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Elimina pontos cegos de armazenamento e garante que nenhum dado sensível fique desprotegido.</p>
+                        </div>
+
+                        <!-- Modulo 11 -->
+                        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2 text-blue-400 font-bold">
+                                <i data-lucide="cloud" class="w-4 h-4"></i>
+                                <span>11. Sincronização em Nuvem &amp; Backup Contínuo</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px]"><strong>Como Funciona:</strong> Replicação contínua de alterações de arquivos com criptografia ponta-a-ponta AES-256 para data center Tier-IV.</p>
+                            <p class="text-emerald-300 text-[11px]"><strong>Finalidade Prática:</strong> RPO (Recovery Point Objective) próximo a zero para arquivos vitais, logs e bancos transacionais.</p>
+                            <p class="text-amber-300 text-[11px]"><strong>Justificativa de Segurança:</strong> Continuidade de negócios imediata frente a queima física de discos ou ataques destrutivos.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA 3: MATRIZ DE CONFORMIDADE E NORMAS -->
+                <div id="doc-view-compliance" class="hidden space-y-4">
+                    <div class="text-xs text-slate-400 pb-2 border-b border-slate-800">
+                        Mapeamento formal dos controles tecnológicos aplicados aos frameworks internacionais e à legislação brasileira:
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border border-slate-800 rounded-xl overflow-hidden">
+                            <thead class="bg-slate-950 text-slate-300 uppercase tracking-wider font-extrabold border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Norma / Framework</th>
+                                    <th class="p-3">Controle / Artigo</th>
+                                    <th class="p-3">Requisito de Segurança</th>
+                                    <th class="p-3">Implementação no JM Cyber Protect</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 text-slate-300">
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-blue-400">NIST CSF v2.0</td>
+                                    <td class="p-3 font-mono text-[11px]">PR.AC / PR.DS</td>
+                                    <td class="p-3">Controle de acesso e proteção física/lógica de dados</td>
+                                    <td class="p-3 text-emerald-300">Criptografia AES-256, Backup Contínuo e Data Protection Map</td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-blue-400">NIST CSF v2.0</td>
+                                    <td class="p-3 font-mono text-[11px]">PR.IP / ID.RA</td>
+                                    <td class="p-3">Gerenciamento de vulnerabilidades e manutenção de patches</td>
+                                    <td class="p-3 text-emerald-300">Patch Management automatizado e Vulnerability Assessment contínuo</td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-blue-400">NIST CSF v2.0</td>
+                                    <td class="p-3 font-mono text-[11px]">DE.CM / RS.AN</td>
+                                    <td class="p-3">Detecção contínua de anomalias e análise de incidentes</td>
+                                    <td class="p-3 text-emerald-300">EDR em tempo real com mapeamento MITRE ATT&CK e contenção de host</td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-blue-400">NIST CSF v2.0</td>
+                                    <td class="p-3 font-mono text-[11px]">RC.RP</td>
+                                    <td class="p-3">Plano de recuperação e restauração de dados íntegros</td>
+                                    <td class="p-3 text-emerald-300">Varredura de Backups no storage nuvem e reversão instantânea de ransomware</td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-emerald-400">LGPD (Lei 13.709)</td>
+                                    <td class="p-3 font-mono text-[11px]">Artigo 46</td>
+                                    <td class="p-3">Medidas técnicas aptas a proteger dados pessoais contra acessos não autorizados</td>
+                                    <td class="p-3 text-emerald-300">Políticas 'Protect RH', 'Backup Contas 365', Filtro Web e GenAI Protection</td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-purple-400">ISO/IEC 27001</td>
+                                    <td class="p-3 font-mono text-[11px]">A.12.2 / A.12.3</td>
+                                    <td class="p-3">Proteção contra software malicioso e cópias de segurança de rotina</td>
+                                    <td class="p-3 text-emerald-300">Acronis Active Protection heurístico e políticas com múltiplos níveis de backup</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs text-slate-400">
+                <span class="flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+                    Documento homologado pelo time de Segurança da Informação da JM Distribuição
+                </span>
+                <button onclick="closePoliciesDocModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all cursor-pointer">
+                    Fechar Janela
+                </button>
+            </div>
+
+        </div>
+    </div>
+
 
     <!-- Footer Institucional -->
     <footer class="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500 font-medium shadow-inner">
@@ -3822,6 +4741,80 @@
         // ==========================================
         // SEGURANÇA: SANITIZAÇÃO RIGOROSA CONTRA XSS
         // ==========================================
+
+        
+        // ==========================================
+        // CONTROLE DA DOCUMENTAÇÃO TÉCNICA DE PLANOS
+        // ==========================================
+
+        function openPoliciesDocModal() {
+            const modal = document.getElementById('policiesDocModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+
+        function closePoliciesDocModal() {
+            const modal = document.getElementById('policiesDocModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function switchDocTab(tabName) {
+            const tabs = ['plans', 'modules', 'compliance'];
+            tabs.forEach(t => {
+                const view = document.getElementById(`doc-view-${t}`);
+                const btn = document.getElementById(`docTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (view) {
+                    if (t === tabName) {
+                        view.classList.remove('hidden');
+                    } else {
+                        view.classList.add('hidden');
+                    }
+                }
+                if (btn) {
+                    if (t === tabName) {
+                        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm";
+                    } else {
+                        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+                    }
+                }
+            });
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function filterDocCards(query) {
+            const q = (query || '').toLowerCase().trim();
+            const cards = document.querySelectorAll('.doc-card');
+            let visibleCount = 0;
+
+            cards.forEach(c => {
+                const searchTxt = (c.getAttribute('data-search') || '') + ' ' + c.innerText.toLowerCase();
+                if (!q || searchTxt.includes(q)) {
+                    c.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    c.classList.add('hidden');
+                }
+            });
+
+            const countElem = document.getElementById('docFilteredCount');
+            if (countElem) {
+                countElem.innerText = `${visibleCount} de ${cards.length} políticas visíveis`;
+            }
+        }
+
+        // Listener de teclado para tecla ESC fechar o modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePoliciesDocModal();
+            }
+        });
+
 
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';
