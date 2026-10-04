@@ -349,10 +349,16 @@ async def export_policies_excel():
     status, tipos de planos, organizações e datas de atualização).
     """
     policies = await acronis.get_protection_policies()
+    resources = await acronis.get_resources()
     kpis = await acronis.get_summary_kpis(period="daily")
     org_name = await acronis.get_organization_name()
 
-    excel_bytes = generate_policies_excel(policies, kpis, organization_name=org_name)
+    excel_bytes = generate_policies_excel(
+        policies=policies,
+        kpis=kpis,
+        resources=resources,
+        organization_name=org_name
+    )
     now_str = datetime.now().strftime("%Y-%m-%d")
     filename = f"Relatorio_Planos_Seguranca_Acronis_{now_str}.xlsx"
 

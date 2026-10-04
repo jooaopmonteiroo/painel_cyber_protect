@@ -877,38 +877,29 @@
                     <p class="text-xs text-slate-300">Mapeamento dinâmico da quantidade exata de dispositivos com planos ativos e desprotegidos</p>
                 </div>
 
-                <!-- 3 Cartões de Estatísticas Uniformemente Dimensionados + Botão de Exportação Excel -->
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full lg:w-auto">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
-                        <!-- Total de Políticas -->
-                        <div class="w-full sm:min-w-[125px] h-[76px] bg-white/10 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-white/15 dark:border-slate-700/60 flex flex-col justify-center items-center text-center shadow-sm">
-                            <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider block">Total Políticas</span>
-                            <strong id="summaryTotalPolicies" class="text-xl sm:text-2xl font-black text-white leading-tight">0</strong>
-                        </div>
-                        <!-- Máquinas Protegidas -->
-                        <div class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/80 dark:bg-emerald-950/60 px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm">
-                            <span class="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Protegidas</span>
-                            <strong id="summaryProtectedMachines" class="text-xl sm:text-2xl font-black text-emerald-400 leading-tight">0</strong>
-                        </div>
-                        <!-- Máquinas Desprotegidas -->
-                        <div class="w-full sm:min-w-[125px] h-[76px] bg-red-950/80 dark:bg-red-950/60 px-3.5 py-2.5 rounded-xl border border-red-500/40 flex flex-col justify-center items-center text-center shadow-sm">
-                            <span class="text-[10px] text-red-300 font-bold uppercase tracking-wider block">Desprotegidas</span>
-                            <strong id="summaryUnprotectedMachines" class="text-xl sm:text-2xl font-black text-red-400 leading-tight">0</strong>
-                        </div>
+                <!-- 3 Cartões de Estatísticas + Botão Minimalista de Exportação Excel (Alinhamento & Proporção Perfeita) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                    <!-- Total de Políticas -->
+                    <div class="w-full sm:min-w-[125px] h-[76px] bg-white/10 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-white/15 dark:border-slate-700/60 flex flex-col justify-center items-center text-center shadow-sm">
+                        <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider block">Total Políticas</span>
+                        <strong id="summaryTotalPolicies" class="text-xl sm:text-2xl font-black text-white leading-tight">0</strong>
                     </div>
-
-                    <!-- Botão Destacado de Exportação em Excel (.xlsx) -->
+                    <!-- Máquinas Protegidas -->
+                    <div class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/80 dark:bg-emerald-950/60 px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm">
+                        <span class="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Protegidas</span>
+                        <strong id="summaryProtectedMachines" class="text-xl sm:text-2xl font-black text-emerald-400 leading-tight">0</strong>
+                    </div>
+                    <!-- Máquinas Desprotegidas -->
+                    <div class="w-full sm:min-w-[125px] h-[76px] bg-red-950/80 dark:bg-red-950/60 px-3.5 py-2.5 rounded-xl border border-red-500/40 flex flex-col justify-center items-center text-center shadow-sm">
+                        <span class="text-[10px] text-red-300 font-bold uppercase tracking-wider block">Desprotegidas</span>
+                        <strong id="summaryUnprotectedMachines" class="text-xl sm:text-2xl font-black text-red-400 leading-tight">0</strong>
+                    </div>
+                    <!-- Botão Minimalista de Exportação Excel -->
                     <button id="btnExportPoliciesExcel" onclick="exportPoliciesToExcel()" 
-                        class="w-full sm:w-auto sm:min-w-[180px] h-[76px] px-5 bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white rounded-xl border border-emerald-400/60 shadow-lg shadow-emerald-950/40 flex flex-col items-center justify-center text-center font-black transition-all active:scale-95 cursor-pointer group shrink-0"
-                        title="Gerar e baixar automaticamente planilha Excel (.xlsx) contendo todos os dados detalhados dos Planos de Segurança e Cobertura">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-200 group-hover:scale-110 transition-transform"></i>
-                            <span class="text-xs font-black uppercase tracking-wider">Exportar Relatório</span>
-                        </div>
-                        <span class="text-[10px] text-emerald-100 font-mono mt-1 font-semibold flex items-center gap-1.5 bg-emerald-900/50 px-2 py-0.5 rounded-md border border-emerald-400/40">
-                            <span>Baixar XLSX</span>
-                            <i data-lucide="download" class="w-3 h-3"></i>
-                        </span>
+                        class="w-full sm:min-w-[125px] h-[76px] bg-emerald-950/70 hover:bg-emerald-900/80 active:scale-95 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-center items-center text-center shadow-sm transition-all cursor-pointer group"
+                        title="Baixar planilha Excel (.xlsx) com o relatório detalhado de cobertura">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform mb-1"></i>
+                        <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Exportar XLSX</span>
                     </button>
                 </div>
             </div>
@@ -1478,13 +1469,8 @@
                 if (btn) {
                     btn.disabled = true;
                     btn.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-emerald-200"></i>
-                            <span class="text-xs font-black uppercase tracking-wider">Gerando Planilha...</span>
-                        </div>
-                        <span class="text-[10px] text-emerald-100 font-mono mt-1 font-semibold flex items-center gap-1.5 bg-emerald-900/50 px-2 py-0.5 rounded-md border border-emerald-400/40">
-                            <span>Processando XLSX</span>
-                        </span>
+                        <i data-lucide="loader-2" class="w-5 h-5 text-emerald-300 animate-spin mb-1"></i>
+                        <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Gerando...</span>
                     `;
                     if (window.lucide) lucide.createIcons();
                 }
