@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - JM Cyber Protect</title>
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <link rel="shortcut icon" href="/static/images/favicon.png">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            navy: '#1E2A4A',      /* Azul Marinho Institucional */
+                            gold: '#EBB528',      /* Amarelo Dourado de Acento */
+                            bg: '#F8FAFC',
+                            card: '#FFFFFF',
+                            border: '#E2E8F0',
+                            textMain: '#1E293B',
+                            textMuted: '#64748B'
+                        },
+                        cyber: {
+                            bgDark: '#0B0F19',
+                            cardDark: '#111827',
+                            borderDark: '#1F2937',
+                            borderHover: '#374151',
+                            red: '#EF4444',
+                            amber: '#F59E0B',
+                            green: '#10B981',
+                            blue: '#3B82F6',
+                            indigo: '#6366F1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #F1F5F9;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(30, 42, 74, 0.65) 0%, transparent 60%),
+                radial-gradient(circle at 90% 85%, rgba(235, 181, 40, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 10% 90%, rgba(30, 42, 74, 0.4) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        .login-card {
+            background-color: #111827;
+            border: 1px solid #1F2937;
+            border-top: 3px solid #EBB528;
+            border-radius: 1.25rem;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(30, 42, 74, 0.4);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .login-card:hover {
+            border-color: #374151;
+            border-top-color: #EBB528;
+            box-shadow: 0 25px 55px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(235, 181, 40, 0.2);
+        }
+
+        .pulse-subtle {
+            animation: pulse-animation 2s infinite ease-in-out;
+        }
+        @keyframes pulse-animation {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0B0F19; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EBB528; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-[#EBB528] selection:text-[#1E2A4A] antialiased">
+
+    <!-- Executive Header Bar (Paleta idêntica ao Dashboard Principal #1E2A4A) -->
+    <header class="w-full bg-[#1E2A4A] text-white shadow-md border-b border-[#2A3B66] px-4 sm:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-3">
+                <img src="/static/images/logo.png" alt="JM Cyber Protect" class="h-10 w-auto max-h-10 object-contain shrink-0 select-none">
+                <div>
+                    <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
+                        JM Cyber Protect <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EBB528] text-[#1E2A4A]">Enterprise API</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-300 hidden sm:block">Monitoramento Centralizado de Riscos & Resiliência Operacional</p>
+                </div>
+            </div>
+
+            <!-- Gateway Status Badge -->
+            <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#141C33] text-slate-200 border border-[#2A3B66]">
+                <span class="w-2 h-2 rounded-full bg-[#EBB528] pulse-subtle"></span>
+                <span class="hidden md:inline">Gateway Seguro •</span>
+                <span>Autenticação Ativa</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container Card (Centralizado, Limpo e Moderno) -->
+    <main class="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
+        <div class="w-full max-w-md login-card p-8 sm:p-10 space-y-6">
+
+            <!-- Logo e Identidade Visual Central da Marca -->
+            <div class="text-center space-y-3">
+                <div class="flex justify-center mb-1">
+                    <img src="/static/images/logo.png" alt="JM Cyber Protect" class="h-24 w-auto object-contain select-none transition-transform duration-300 hover:scale-105">
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-2xl font-black text-white tracking-tight">
+                        JM Cyber Protect
+                    </h2>
+                    <p class="text-xs text-slate-400 font-medium max-w-xs mx-auto">
+                        Painel de Monitoramento Centralizado e Telemetria de Segurança
+                    </p>
+                </div>
+            </div>
+
+            <!-- Alerta Dinâmico de Erro / Informação -->
+            <div id="loginAlert" class="hidden p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-2.5 transition-all">
+                <i id="alertIcon" data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5"></i>
+                <div id="alertMessage" class="flex-1"></div>
+            </div>
+
+            <!-- Formulário de Autenticação -->
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <!-- Campo de Utilizador ou E-mail -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Utilizador ou E-mail
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                        <input type="text" id="username" required autocomplete="username" placeholder="Seu utilizador ou e-mail corporativo..." 
+                               class="w-full pl-10 pr-4 py-3 bg-[#0F172A] border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#EBB528] focus:ring-2 focus:ring-[#EBB528]/20 font-medium transition-all">
+                    </div>
+                </div>
+
+                <!-- Campo de Senha -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Senha de Acesso
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                        <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" 
+                               class="w-full pl-10 pr-10 py-3 bg-[#0F172A] border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#EBB528] focus:ring-2 focus:ring-[#EBB528]/20 font-mono transition-all">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-[#EBB528] transition-colors cursor-pointer" title="Exibir/Ocultar Senha">
+                            <i id="togglePwdIcon" data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Controles Adicionais e Protocolo -->
+                <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded bg-[#0F172A] border-slate-700 text-[#EBB528] focus:ring-[#EBB528] cursor-pointer">
+                        <span class="font-medium text-slate-300">Lembrar credenciais</span>
+                    </label>
+                    <span class="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+                        <i data-lucide="shield" class="w-3 h-3 text-[#EBB528]"></i> TLS 1.3 Seguro
+                    </span>
+                </div>
+
+                <!-- Botão de Acesso Principal (Dourado de Alto Contraste #EBB528) -->
+                <button type="submit" id="submitBtn" class="w-full py-3.5 bg-[#EBB528] hover:bg-[#d9a41e] text-[#1E2A4A] font-extrabold rounded-xl text-sm transition-all duration-200 shadow-lg shadow-[#EBB528]/15 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer mt-2">
+                    <span id="btnText" class="flex items-center gap-2">
+                        <i data-lucide="log-in" class="w-4 h-4 stroke-[2.5]"></i>
+                        <span>Entrar no Painel</span>
+                    </span>
+                    <span id="btnSpinner" class="hidden flex items-center gap-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin stroke-[2.5]"></i>
+                        <span>Validando Credenciais...</span>
+                    </span>
+                </button>
+            </form>
+
+            <!-- Rodapé do Card com Regras de Auditoria e Zero-Trust -->
+            <div class="pt-4 border-t border-[#1F2937] text-center space-y-2.5">
+                <div class="flex items-center justify-center gap-2 text-xs text-slate-300 font-medium bg-[#141C33] py-2 px-3 rounded-xl border border-[#2A3B66]">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-[#EBB528]"></i>
+                    <span>Acesso restrito a utilizadores autorizados e liberados</span>
+                </div>
+                <p class="text-[11px] text-slate-500">
+                    JM Cyber Protect © 2026. Todos os acessos são auditados e monitorados.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Rodapé Institucional (Alinhado com a paleta corporativa) -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-[#1F2937] bg-[#0B0F19]">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#EBB528]"></i> JM Cyber Protect Enterprise</span>
+                <span class="flex items-center gap-1.5"><i data-lucide="key" class="w-3.5 h-3.5 text-blue-400"></i> Sessões HTTP-Only Criptografadas</span>
+            </div>
+            <div>
+                Monitoramento Centralizado & Resiliência Operacional
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript de Autenticação -->
+    <script>
+        function showAlert(message, isWarning = false) {
+            const alertBox = document.getElementById('loginAlert');
+            const alertMsg = document.getElementById('alertMessage');
+            const alertIcon = document.getElementById('alertIcon');
+
+            alertMsg.textContent = message;
+            if (isWarning) {
+                alertBox.className = 'p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-2.5 transition-all bg-amber-950/70 border-[#EBB528]/50 text-amber-200';
+                alertIcon.className = 'w-4 h-4 text-[#EBB528] shrink-0 mt-0.5';
+                alertIcon.setAttribute('data-lucide', 'alert-triangle');
+            } else {
+                alertBox.className = 'p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-2.5 transition-all bg-red-950/70 border-red-500/50 text-red-200';
+                alertIcon.className = 'w-4 h-4 text-red-400 shrink-0 mt-0.5';
+                alertIcon.setAttribute('data-lucide', 'alert-circle');
+            }
+            alertBox.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function hideAlert() {
+            document.getElementById('loginAlert').classList.add('hidden');
+        }
+
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const icon = document.getElementById('togglePwdIcon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                pwdInput.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            hideAlert();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showAlert('Por favor, informe seu utilizador/e-mail e senha.');
+                return;
+            }
+
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const submitBtn = document.getElementById('submitBtn');
+
+            btnText.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username_or_email: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Redireciona com sucesso para o dashboard principal
+                    window.location.href = '/';
+                } else {
+                    const isPending = data.message && data.message.toLowerCase().includes('liberada');
+                    showAlert(data.message || 'Falha na autenticação. Verifique suas credenciais.', isPending);
+                }
+            } catch (err) {
+                showAlert('Erro de conexão ao servidor de autenticação. Tente novamente.');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                submitBtn.disabled = false;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

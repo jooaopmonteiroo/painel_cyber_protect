@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. Painel Principal de Monitoramento (JM Cyber Protect)
+  painel-cyber:
+    build: .
+    container_name: jm_cyber_protect_dashboard
+    restart: always
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./auth.db:/app/auth.db
+      - ./.env:/app/.env
+      - ./static:/app/static
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # 2. Console Administrativo Externo Isolado (Gestão de Utilizadores)
+  admin-console:
+    build: .
+    container_name: jm_cyber_protect_admin
+    restart: always
+    command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1
+    ports:
+      # Dica de segurança: em produção pode amarrar em 127.0.0.1:8001 se usar Nginx reverso
+      - "8001:8001"
+    volumes:
+      - ./auth.db:/app/auth.db
+      - ./.env:/app/.env
+      - ./static:/app/static
+    environment:
+      - PYTHONUNBUFFERED=1

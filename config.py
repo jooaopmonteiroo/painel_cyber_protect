@@ -25,6 +25,10 @@ class Config:
     # Porta do servidor da aplicação
     PORT = int(os.getenv("PORT", "8000"))
 
+    # Configurações do Painel de Administração Externo/Isolado
+    ADMIN_MASTER_KEY = os.getenv("ADMIN_MASTER_KEY", "AcronisCyberAdminMasterKey#2026!")
+    ADMIN_PORT = int(os.getenv("ADMIN_PORT", "8001"))
+
     @classmethod
     def is_mock_enabled(cls) -> bool:
         """Retorna se o modo Mock/Demonstração deve ser ativado."""

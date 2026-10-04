@@ -1,0 +1,16 @@
+[Unit]
+Description=JM Cyber Protect - Console Administrativo Externo
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/painel_cyber_protect
+Environment="PATH=/var/www/painel_cyber_protect/venv/bin"
+ExecStart=/var/www/painel_cyber_protect/venv/bin/gunicorn admin_server:app -w 1 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8001 --access-logfile - --error-logfile -
+Restart=always
+RestartSec=5
+KillSignal=SIGQUIT
+
+[Install]
+WantedBy=multi-user.target

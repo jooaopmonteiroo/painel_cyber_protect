@@ -1,0 +1,28 @@
+# Arquivos de Ambiente e Segredos (Segurança de Código)
+.env
+.env.local
+.env.*.local
+
+# Python e Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Bancos de Dados Locais e Sessões
+auth.db*
+*.sqlite3
