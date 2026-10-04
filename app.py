@@ -1,10 +1,11 @@
 import os
+import io
 import re
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from fastapi import FastAPI, Request, Query, Path, HTTPException, status, Depends, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -370,11 +371,13 @@ async def export_policies_excel():
     now_str = datetime.now().strftime("%Y-%m-%d")
     filename = f"Relatorio_Planos_Seguranca_Acronis_{now_str}.xlsx"
 
-    return Response(
-        content=excel_bytes,
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Length": str(len(excel_bytes)),
             "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
             "Expires": "0"
