@@ -188,7 +188,11 @@ async def login_page(request: Request):
     user = get_current_user_optional(request)
     if user:
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse(request=request, name="login.html")
+    response = templates.TemplateResponse(request=request, name="login.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.post("/api/auth/login")
 async def login_api(data: LoginRequest, request: Request):
@@ -253,7 +257,7 @@ async def index_page(request: Request):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="index.html",
         context={
@@ -262,6 +266,10 @@ async def index_page(request: Request):
             "acronis_url": Config.ACRONIS_URL
         }
     )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.post("/api/refresh", dependencies=[Depends(require_auth)])
 async def trigger_refresh():

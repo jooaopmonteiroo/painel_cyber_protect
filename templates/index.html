@@ -2290,6 +2290,17 @@
             }
         }
 
+        function formatPolicyType(rawType) {
+            if (!rawType) return 'Proteção Total (Cyber Protect)';
+            const t = String(rawType).toLowerCase();
+            if (t.includes('protection.total')) return 'Proteção Total (Cyber Protect)';
+            if (t.includes('management.agent') || t.includes('management')) return 'Gerenciamento de Agentes';
+            if (t.includes('backup')) return 'Backup Corporativo & Resiliência';
+            if (t.includes('antimalware') || t.includes('edr')) return 'Proteção Antimalware & EDR';
+            if (t.includes('url')) return 'Filtragem de Conteúdo Web';
+            return 'Proteção Corporativa';
+        }
+
         function renderPoliciesGrid(policies) {
             const grid = document.getElementById('policiesGrid');
             // Garante que apenas planos com dispositivos vinculados sejam renderizados
@@ -2312,7 +2323,7 @@
                                     <i data-lucide="shield" class="w-4 h-4 text-[#EBB528] shrink-0"></i>
                                     <span class="truncate">${escapeHtml(p.name)}</span>
                                 </h3>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">${escapeHtml(p.type)}</p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mt-0.5 truncate">${escapeHtml(formatPolicyType(p.type))}</p>
                             </div>
                             <span class="shrink-0 px-2.5 py-1 rounded-full text-xs font-extrabold ${isSuccess ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}">
                                 ${isSuccess ? 'Ativo' : 'Inativo'}
