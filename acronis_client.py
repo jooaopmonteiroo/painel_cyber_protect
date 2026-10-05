@@ -372,11 +372,12 @@ class AcronisClient:
 
     async def get_resources(self, search: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Busca a lista de Recursos Físicos / Dispositivos Gerenciados (/api/resource_management/v2/resources).
-        - Exclui estritamente instâncias do M365 (mailboxes, tenants, sites cloud).
-        - Aplica validação estrita de online/offline com suporte a múltiplos formatos de heartbeat.
-        - Integra CyberFit Scores autênticos provenientes de /v4/resource_statuses.
-        - Aplica o cálculo REAL de risco (eliminando falsos positivos que travavam a taxa de segurança em 0%).
+        Busca a lista de Recursos Físicos / Dispositivos Gerenciados da API Acronis.
+        - Prioriza endpoints oficiais de máquinas físicas/VMs com atributos completos.
+        - Filtra estritamente por dispositivos que possuem agente registrado e gerenciado ativo.
+        - Ignora recursos unmanaged, itens de cloud discovery (como M365), volumes, discos e rede.
+        - Descarta máquinas com status 'deleted', 'removed', 'revoked' ou 'unregistered'.
+        - Aplica deduplicação por resource_id e agent_id para evitar contagem duplicada.
         - Sem fallbacks silenciosos para mocks: caso a API falhe, lança AcronisAPIError.
         """
         if self.is_mock:
@@ -387,9 +388,12 @@ class AcronisClient:
             return self._filter_resources(cached_resources, search)
 
         candidate_paths = [
-            "/api/resource_management/v2/resources",
-            "/api/resource_management/v1/resources",
-            "/api/asset_management/v1/resources"
+            "/api/resource_management/v4/resources?type=resource.machine&include_attributes=true&limit=1000",
+            "/api/resource_management/v4/resources?limit=1000",
+            "/api/resource_management/v2/resources?type=resource.machine&limit=1000",
+            "/api/resource_management/v2/resources?limit=1000",
+            "/api/resource_management/v1/resources?limit=1000",
+            "/api/asset_management/v1/resources?limit=1000"
         ]
 
         alerts = await self.get_alerts()
@@ -435,25 +439,51 @@ class AcronisClient:
         try:
             headers = await self._get_headers()
             async with httpx.AsyncClient(timeout=15.0) as client:
-                # Consulta catálogo de Agentes Acronis para enriquecimento real de telemetria (online, OS, IP real)
+                # 1. Consulta catálogo de Agentes Acronis para validação estrita de registro e telemetria
                 agents_map: Dict[str, Dict[str, Any]] = {}
-                try:
-                    agents_url = f"{self.base_url}/api/agent_manager/v2/agents?limit=1000"
-                    logger.info(f"[API AUDIT] Consultando Agentes Acronis em: {agents_url}")
-                    ag_res = await client.get(agents_url, headers=headers)
-                    if ag_res.status_code == 200:
-                        ag_items = ag_res.json().get("items", [])
-                        for ag in ag_items:
-                            ag_id = str(ag.get("id", ""))
-                            if ag_id:
-                                agents_map[ag_id] = ag
+                agents_catalog_loaded = False
+                for ag_path in ["/api/agent_manager/v2/agents?limit=1000", "/api/agent_manager/v1/agents?limit=1000"]:
+                    try:
+                        ag_url = f"{self.base_url}{ag_path}"
+                        logger.info(f"[API AUDIT] Consultando Agentes Acronis em: {ag_url}")
+                        ag_res = await client.get(ag_url, headers=headers)
+                        if ag_res.status_code == 200:
+                            ag_items = ag_res.json().get("items", [])
+                            for ag in ag_items:
+                                ag_id = str(ag.get("id") or "")
+                                ag_status = str(ag.get("status") or ag.get("state") or "").lower()
+                                ag_reg = ag.get("registered")
+                                # Descarta agentes revogados, deletados ou não registrados
+                                if ag_reg is False or ag_status in ["revoked", "deleted", "unregistered", "removed", "disabled", "archived", "unmanaged"]:
+                                    continue
+
+                                if ag_id:
+                                    agents_map[ag_id] = ag
+                                
+                                for key_attr in ["device_id", "deviceId", "resource_id", "resourceId", "machine_id", "machineId", "context_id", "contextId"]:
+                                    dev_val = str(ag.get(key_attr) or "")
+                                    if dev_val:
+                                        agents_map[dev_val] = ag
+                                
                                 if ag.get("name"):
-                                    agents_map[str(ag.get("name"))] = ag
+                                    agents_map[str(ag.get("name")).lower()] = ag
                                 if ag.get("hostname"):
-                                    agents_map[str(ag.get("hostname"))] = ag
-                        logger.info(f"[API AUDIT] {len(ag_items)} agentes carregados para mapeamento de status online.")
-                except Exception as e_ag:
-                    logger.warning(f"Não foi possível carregar catálogo de agentes: {e_ag}")
+                                    agents_map[str(ag.get("hostname")).lower()] = ag
+
+                            agents_catalog_loaded = True
+                            logger.info(f"[API AUDIT] {len(ag_items)} agentes processados ({len(agents_map)} mapeamentos de agentes ativos/registrados).")
+                            break
+                    except Exception as e_ag:
+                        logger.warning(f"Não foi possível carregar catálogo de agentes em {ag_path}: {e_ag}")
+
+                # Palavras-chave de entidades não físicas / desconsideradas
+                excluded_type_keywords = [
+                    "m365", "office365", "msexchange", "mailbox", "sharepoint", "teams", "onedrive",
+                    "tenant_cloud", "cloud_account", "azure", "google", "cloud",
+                    "discovery", "discovered", "network_device", "unmanaged",
+                    "volume", "disk", "cluster", "esx", "pool", "location",
+                    "organization", "ad_object", "switch", "router", "printer", "firewall"
+                ]
 
                 for path in candidate_paths:
                     url = f"{self.base_url}{path}"
@@ -463,18 +493,89 @@ class AcronisClient:
                         if response.status_code == 200:
                             raw_data = response.json()
                             items = raw_data.get("items", raw_data if isinstance(raw_data, list) else [])
-                            logger.info(f"[API AUDIT] {len(items)} recursos recebidos com sucesso da API oficial.")
+                            logger.info(f"[API AUDIT] {len(items)} recursos brutos recebidos da API oficial.")
 
                             resources = []
-                            for r in items:
-                                r_id = str(r.get("id", ""))
-                                res_type = str(r.get("type", "")).lower()
+                            seen_resource_ids = set()
+                            seen_agent_ids = set()
 
-                                # 1. FILTRAGEM RÍGIDA: Exclui M365 das máquinas físicas
-                                if any(m365_kw in res_type for m365_kw in ["m365", "office365", "msexchange", "mailbox", "sharepoint", "teams", "tenant_cloud", "cloud_account"]):
+                            for r in items:
+                                r_id = str(r.get("id") or "")
+                                if not r_id:
                                     continue
 
+                                # 1. FILTRAGEM RÍGIDA DE STATUS/ESTADO DO RECURSO
+                                r_status = str(r.get("status") or r.get("state") or "").lower()
+                                if r_status in ["deleted", "removed", "revoked", "unregistered", "archived", "unmanaged", "disabled"]:
+                                    continue
+                                if r.get("is_deleted") is True or r.get("deleted_at") is not None or r.get("deletedAt") is not None:
+                                    continue
+                                if r.get("managed") is False or r.get("unmanaged") is True:
+                                    continue
+
+                                # 2. FILTRAGEM RÍGIDA DE TIPO (Exclui M365, discovery de rede, storage, etc.)
+                                res_type = str(r.get("type") or r.get("resourceType") or r.get("kind") or "").lower()
+                                if any(kw in res_type for kw in excluded_type_keywords):
+                                    continue
+
+                                # 3. VALIDAÇÃO ESTRITA DE AGENTE ASSOCIADO E REGISTRADO
+                                agent_id = None
+                                agent_obj = r.get("agent")
+                                agent_registered = None
+                                if isinstance(agent_obj, dict):
+                                    agent_id = str(agent_obj.get("id") or agent_obj.get("agent_id") or "")
+                                    agent_registered = agent_obj.get("registered")
+                                    ag_st = str(agent_obj.get("status") or "").lower()
+                                    if agent_registered is False or ag_st in ["revoked", "deleted", "unregistered", "removed", "disabled", "archived"]:
+                                        continue
+                                elif isinstance(agent_obj, list) and agent_obj and isinstance(agent_obj[0], dict):
+                                    agent_id = str(agent_obj[0].get("id") or agent_obj[0].get("agent_id") or "")
+                                    agent_registered = agent_obj[0].get("registered")
+                                    ag_st = str(agent_obj[0].get("status") or "").lower()
+                                    if agent_registered is False or ag_st in ["revoked", "deleted", "unregistered", "removed", "disabled", "archived"]:
+                                        continue
+
+                                if not agent_id:
+                                    agent_id = str(r.get("agentId") or r.get("agent_id") or r.get("agent_uuid") or "")
+
                                 name = r.get("userDefinedName") or r.get("name") or r.get("hostname") or r.get("title")
+                                name_lower = str(name or "").lower()
+                                hostname_lower = str(r.get("hostname") or "").lower()
+
+                                agent_info = (
+                                    agents_map.get(agent_id) if agent_id else None
+                                ) or agents_map.get(r_id) or (
+                                    agents_map.get(name_lower) if name_lower else None
+                                ) or (
+                                    agents_map.get(hostname_lower) if hostname_lower else None
+                                )
+
+                                # Se o catálogo de agentes foi carregado da API oficial:
+                                # Apenas nós que tenham correspondência com um agente ativo/registrado entram
+                                if agents_catalog_loaded:
+                                    if not agent_info:
+                                        # Se não encontrou no mapa, aceita somente se o nó tiver agente explícito registrado e gerenciado
+                                        if not (agent_id and (agent_registered is True or r.get("managed") is True)):
+                                            continue
+                                else:
+                                    # Fallback se endpoint de agentes foi inacessível:
+                                    # Exige identificador de agente e recusa nós desmarcados como gerenciados
+                                    if not agent_id and not agent_obj:
+                                        continue
+                                    if agent_registered is False or r.get("managed") is False:
+                                        continue
+
+                                # 4. DEDUPLICAÇÃO ESTRITA POR RESOURCE_ID E AGENT_ID
+                                unique_agent_id = str(agent_info.get("id") if agent_info else (agent_id or ""))
+                                if r_id in seen_resource_ids:
+                                    continue
+                                if unique_agent_id and unique_agent_id in seen_agent_ids:
+                                    continue
+
+                                seen_resource_ids.add(r_id)
+                                if unique_agent_id:
+                                    seen_agent_ids.add(unique_agent_id)
+
                                 if not name or (len(name) > 35 and "-" in name):
                                     name = r.get("ip") or f"Dispositivo-{r_id[:8]}"
 
@@ -492,20 +593,15 @@ class AcronisClient:
                                 else:
                                     os_val = "SO Não Identificado"
 
-                                # 2. VALIDAÇÃO RÍGIDA DE AGENTE ONLINE/OFFLINE VIA AGENT_MANAGER
-                                ag_id = str(r.get("agentId") or "")
-                                agent_info = agents_map.get(ag_id) or agents_map.get(r_id) or agents_map.get(name)
-
+                                # Status online e telemetria refinada pelo agente
                                 if agent_info:
                                     status_online = bool(agent_info.get("online"))
-                                    # Sistema Operacional Real da Plataforma
                                     platform = agent_info.get("platform")
                                     if isinstance(platform, dict):
                                         os_val = platform.get("name") or platform.get("family") or os_val
                                     elif isinstance(platform, str) and platform.strip():
                                         os_val = platform.strip()
 
-                                    # IP Real da Rede Local
                                     network = agent_info.get("network")
                                     if isinstance(network, dict):
                                         for iface in network.get("network_interfaces", []):
@@ -532,11 +628,21 @@ class AcronisClient:
                                         status_online = is_flag_online
 
                                 vulnerabilities = r.get("vulnerabilities_count") or r.get("vulnerabilitiesCount") or 0
-                                last_backup_status = str(r.get("last_backup_status") or r.get("lastBackupStatus") or "success").lower()
+
+                                # Status e timestamp de backup (SEM assumir "success" cegamente)
+                                raw_bkp = r.get("last_backup_status") or r.get("lastBackupStatus")
+                                if not raw_bkp and r_id in status_map:
+                                    raw_bkp = status_map[r_id].get("backup_status") or status_map[r_id].get("last_backup_status")
+                                last_backup_status = str(raw_bkp).lower() if raw_bkp else "none"
+
+                                last_backup_time = (
+                                    r.get("last_backup_time") or r.get("lastBackupTime") or 
+                                    (status_map.get(r_id, {}).get("last_backup_time")) or "N/A"
+                                )
 
                                 # CÁLCULO ESTRITO E REAL DE RISCO
                                 has_severe_malware = r_id in system_critical_alert_resources
-                                has_failed_backup = last_backup_status in ["failed", "error"]
+                                has_failed_backup = last_backup_status in ["failed", "error", "critical"]
                                 has_excessive_vulns = int(vulnerabilities) > 10
 
                                 st_entry = status_map.get(r_id, {})
@@ -550,10 +656,17 @@ class AcronisClient:
                                 else:
                                     risk_level = "safe"
 
+                                # Normalização de tipo para servidor ou estação
+                                if "server" in res_type or "srv" in name.lower():
+                                    norm_type = "server"
+                                else:
+                                    norm_type = "workstation"
+
                                 resources.append({
                                     "id": r_id,
+                                    "agent_id": unique_agent_id,
                                     "name": name,
-                                    "type": res_type if res_type else "workstation",
+                                    "type": norm_type,
                                     "os": os_val,
                                     "online": status_online,
                                     "ip": ip_val,
@@ -562,10 +675,11 @@ class AcronisClient:
                                     "cyberfit_score": cyberfit_score,
                                     "vulnerabilities": int(vulnerabilities),
                                     "last_backup_status": last_backup_status,
-                                    "last_backup_time": r.get("last_backup_time") or r.get("lastBackupTime") or r.get("updatedAt") or "N/A",
+                                    "last_backup_time": last_backup_time,
                                     "protection_status": "protected" if risk_level == "safe" else ("at_risk" if risk_level == "critical" else "attention_required")
                                 })
 
+                            logger.info(f"[API AUDIT] {len(resources)} dispositivos gerenciados com agente ativo validados após filtros estritos.")
                             self._set_cached("resources", resources)
                             return self._filter_resources(resources, search)
                         else:
@@ -661,26 +775,21 @@ class AcronisClient:
                                 root_id = resolve_root(p_id)
                                 
                                 if root_id in root_plans_dict:
-                                    res_info = res_map.get(str(ctx_id), {
-                                        "id": ctx_id,
-                                        "name": f"Dispositivo-{ctx_id[:8]}",
-                                        "os": "Windows",
-                                        "ip": "--",
-                                        "risk_level": "safe"
-                                    })
+                                    # Vincula estritamente apenas nós que pertencem à frota real filtrada de máquinas gerenciadas
+                                    if str(ctx_id) in res_map:
+                                        res_info = res_map[str(ctx_id)]
+                                        st_label = "success" if status_raw in ["ok", "success", "running"] else ("failed" if status_raw in ["error", "failed", "critical"] else "warning")
 
-                                    st_label = "success" if status_raw in ["ok", "success", "running"] else ("failed" if status_raw in ["error", "failed", "critical"] else "warning")
-
-                                    if ctx_id not in plan_machines_map[root_id]:
-                                        plan_machines_map[root_id][ctx_id] = {
-                                            "id": ctx_id,
-                                            "name": res_info.get("name"),
-                                            "os": res_info.get("os"),
-                                            "ip": res_info.get("ip"),
-                                            "risk_level": res_info.get("risk_level", "safe"),
-                                            "status": st_label
-                                        }
-                                        plan_status_counts[root_id][st_label] += 1
+                                        if ctx_id not in plan_machines_map[root_id]:
+                                            plan_machines_map[root_id][ctx_id] = {
+                                                "id": ctx_id,
+                                                "name": res_info.get("name"),
+                                                "os": res_info.get("os"),
+                                                "ip": res_info.get("ip"),
+                                                "risk_level": res_info.get("risk_level", "safe"),
+                                                "status": st_label
+                                            }
+                                            plan_status_counts[root_id][st_label] += 1
         except Exception as e:
             logger.warning(f"Erro ao consultar vinculação de aplicações: {e}")
 
@@ -747,6 +856,157 @@ class AcronisClient:
         self._set_cached("policies", final_policies)
         return final_policies
 
+    async def get_backup_metrics(self, resources: List[Dict[str, Any]], period: str = "daily") -> Dict[str, int]:
+        """
+        Calcula as métricas de backups (sucesso, falhas e avisos) exclusivamente para o escopo
+        de máquinas/agentes reais gerenciados, sem duplicar o total de máquinas cegamente.
+        Consulta primeiro /api/task_manager/v2/activities e recorre ao status/telemetria dos agentes se necessário.
+        """
+        clean_period = (period or "daily").lower()
+        if clean_period not in ["daily", "weekly", "monthly"]:
+            clean_period = "daily"
+
+        # Modo Mock / Demonstração
+        if self.is_mock:
+            success_cnt = sum(1 for r in resources if r.get("last_backup_status") in ["success", "completed", "ok"])
+            failed_cnt = sum(1 for r in resources if r.get("last_backup_status") in ["failed", "error", "critical"])
+            warning_cnt = sum(1 for r in resources if r.get("last_backup_status") in ["warning", "warn"])
+            
+            if clean_period == "weekly":
+                mult = 7
+            elif clean_period == "monthly":
+                mult = 30
+            else:
+                mult = 1
+                
+            return {
+                "success": success_cnt * mult,
+                "failed": failed_cnt * mult,
+                "warning": warning_cnt * mult
+            }
+
+        valid_res_ids = {str(r["id"]) for r in resources if r.get("id")}
+        valid_agent_ids = {str(r.get("agent_id")) for r in resources if r.get("agent_id")}
+
+        # 1. Tenta consultar o endpoint de atividades da Acronis (/api/task_manager/v2/activities)
+        try:
+            headers = await self._get_headers()
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                candidate_act_urls = [
+                    f"{self.base_url}/api/task_manager/v2/activities?limit=1000",
+                    f"{self.base_url}/api/task_manager/v1/activities?limit=1000"
+                ]
+                now = datetime.now(timezone.utc)
+                max_hours = 26 if clean_period == "daily" else (168 if clean_period == "weekly" else 720)
+
+                for act_url in candidate_act_urls:
+                    try:
+                        res = await client.get(act_url, headers=headers)
+                        if res.status_code == 200:
+                            act_items = res.json().get("items", [])
+                            act_success = 0
+                            act_failed = 0
+                            act_warning = 0
+                            found_backup_tasks = 0
+                            seen_tasks = set()
+
+                            for act in act_items:
+                                act_type = str(act.get("type", "")).lower()
+                                pol_type = str(act.get("policyType", "")).lower()
+                                details = str(act.get("details", "")).lower()
+                                if not ("backup" in act_type or "backup" in pol_type or "backup" in details):
+                                    continue
+
+                                c_id = str(act.get("resourceId") or act.get("resource_id") or act.get("context", {}).get("id") or "")
+                                a_id = str(act.get("agentId") or act.get("agent_id") or "")
+                                if c_id not in valid_res_ids and a_id not in valid_agent_ids:
+                                    continue
+
+                                done_time = act.get("completedAt") or act.get("completed_at") or act.get("updatedAt") or act.get("createdAt")
+                                if done_time:
+                                    try:
+                                        clean_ts = done_time.split(".")[0] + "Z" if "." in done_time else done_time
+                                        dt = datetime.fromisoformat(clean_ts.replace("Z", "+00:00"))
+                                        diff_h = (now - dt).total_seconds() / 3600.0
+                                        if diff_h < 0 or diff_h > max_hours:
+                                            continue
+                                    except Exception:
+                                        pass
+
+                                tid = act.get("id") or act.get("taskId") or f"{c_id}_{done_time}"
+                                if tid in seen_tasks:
+                                    continue
+                                seen_tasks.add(tid)
+                                found_backup_tasks += 1
+
+                                state = str(act.get("state") or act.get("status") or "").lower()
+                                res_code = str(act.get("resultCode") or "").lower()
+
+                                if state in ["completed", "success", "ok"] and res_code in ["", "success", "ok", "0"]:
+                                    act_success += 1
+                                elif state in ["failed", "error", "critical"] or res_code in ["error", "failed"]:
+                                    act_failed += 1
+                                elif state in ["warning"] or res_code in ["warning", "warn"]:
+                                    act_warning += 1
+
+                            if found_backup_tasks > 0:
+                                logger.info(f"[API AUDIT] Atividades de backup apuradas via API: {act_success} sucessos, {act_failed} falhas, {act_warning} avisos.")
+                                return {
+                                    "success": act_success,
+                                    "failed": act_failed,
+                                    "warning": act_warning
+                                }
+                    except Exception as e_inner:
+                        logger.debug(f"Falha ao consultar atividades em {act_url}: {e_inner}")
+        except Exception as e_act:
+            logger.warning(f"Erro ao buscar atividades da API Acronis: {e_act}")
+
+        # 2. Fallback baseado no status e timestamp de backup dos recursos filtrados
+        now = datetime.now(timezone.utc)
+        max_hours = 26 if clean_period == "daily" else (168 if clean_period == "weekly" else 720)
+
+        res_success = 0
+        res_failed = 0
+        res_warning = 0
+
+        for r in resources:
+            bkp_status = str(r.get("last_backup_status") or "").lower()
+            bkp_time = r.get("last_backup_time")
+
+            is_recent = False
+            if bkp_time and bkp_time != "N/A":
+                try:
+                    clean_ts = bkp_time.split(".")[0] + "Z" if "." in bkp_time else bkp_time
+                    dt = datetime.fromisoformat(clean_ts.replace("Z", "+00:00"))
+                    diff_h = (now - dt).total_seconds() / 3600.0
+                    if 0 <= diff_h <= max_hours:
+                        is_recent = True
+                except Exception:
+                    pass
+
+            if bkp_status in ["success", "completed", "ok"]:
+                if is_recent:
+                    res_success += 1
+            elif bkp_status in ["failed", "error", "critical"]:
+                if is_recent or bkp_time == "N/A":
+                    res_failed += 1
+            elif bkp_status in ["warning", "warn"]:
+                if is_recent:
+                    res_warning += 1
+
+        if clean_period == "weekly":
+            mult = 7
+        elif clean_period == "monthly":
+            mult = 30
+        else:
+            mult = 1
+
+        return {
+            "success": res_success * mult,
+            "failed": res_failed * mult,
+            "warning": res_warning * mult
+        }
+
     async def get_summary_kpis(self, period: str = "daily") -> Dict[str, Any]:
         """
         Calcula as métricas e estatísticas consolidadas dos 6 Cards Estratégicos do Dashboard.
@@ -767,9 +1027,10 @@ class AcronisClient:
         policies = await self.get_protection_policies()
         storage_gb = await self.get_storage_usage_gb()
 
+        # Total de dispositivos reflete exatamente a frota com agentes reais registrados e gerenciados
         total_resources = len(resources)
         online_resources = sum(1 for r in resources if r.get("online", True))
-        offline_resources = total_resources - online_resources
+        offline_resources = max(0, total_resources - online_resources)
 
         # Identifica máquinas protegidas cruzando com os planos
         protected_ids = set()
@@ -818,25 +1079,11 @@ class AcronisClient:
             health_status_label = "Crítico"
             health_status_color = "#EF4444"
 
-        # Backups no período (diário reflete as rotinas do dia; semanal/mensal reflete o histórico consolidado)
-        failed_backups_daily = sum(1 for r in resources if r.get("last_backup_status") == "failed")
-        warning_backups_daily = sum(1 for r in resources if r.get("last_backup_status") == "warning")
-        success_backups_daily = max(0, total_resources - (failed_backups_daily + warning_backups_daily))
-
-        if clean_period == "weekly":
-            mult = 7
-            failed_backups = failed_backups_daily * mult
-            warning_backups = warning_backups_daily * mult
-            success_backups = success_backups_daily * mult
-        elif clean_period == "monthly":
-            mult = 30
-            failed_backups = failed_backups_daily * mult
-            warning_backups = warning_backups_daily * mult
-            success_backups = success_backups_daily * mult
-        else:
-            failed_backups = failed_backups_daily
-            warning_backups = warning_backups_daily
-            success_backups = success_backups_daily
+        # Backups calculados estritamente sobre o escopo de agentes reais e rotinas concluídas
+        backup_metrics = await self.get_backup_metrics(resources, period=clean_period)
+        success_backups = backup_metrics["success"]
+        failed_backups = backup_metrics["failed"]
+        warning_backups = backup_metrics["warning"]
 
         pending_vulnerabilities = sum(int(r.get("vulnerabilities", 0)) for r in resources)
         if pending_vulnerabilities == 0 and not self.is_mock:
@@ -1511,6 +1758,7 @@ class AcronisClient:
         return [
             {
                 "id": "res-srv-db01",
+                "agent_id": "ag-srv-db01",
                 "name": "SRV-DB-PROD-01.jm.corp",
                 "type": "server",
                 "os": "Windows Server 2022 Datacenter",
@@ -1525,6 +1773,7 @@ class AcronisClient:
             },
             {
                 "id": "res-desk-fin",
+                "agent_id": "ag-desk-fin",
                 "name": "DESKTOP-FINANCE-04.jm.corp",
                 "type": "workstation",
                 "os": "Windows 11 Pro 23H2",

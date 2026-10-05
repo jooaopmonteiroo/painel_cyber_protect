@@ -35,6 +35,8 @@ class Config:
         if cls.FORCE_MOCK:
             return True
         # Se as credenciais forem vazias ou padrão de exemplo
-        if not cls.CLIENT_ID or not cls.CLIENT_SECRET or "SEU_CLIENT_ID" in cls.CLIENT_ID:
+        c_id = (cls.CLIENT_ID or "").lower()
+        c_sec = (cls.CLIENT_SECRET or "").lower()
+        if not c_id or not c_sec or "seu_client_id" in c_id or "seu_client_secret" in c_sec:
             return True
         return False
