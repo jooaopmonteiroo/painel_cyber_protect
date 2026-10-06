@@ -313,10 +313,12 @@ async def get_status():
 
 @app.get("/api/kpis", response_model=KPISummaryModel, dependencies=[Depends(require_auth)])
 async def get_kpis(
-    period: str = Query("daily", pattern=r"^(daily|weekly|monthly)$", description="Período de consolidação: daily, weekly, monthly")
+    period: str = Query("daily", pattern=r"^(daily|weekly|monthly)$", description="Período de consolidação: daily, weekly, monthly"),
+    start_date: Optional[str] = Query(None, description="Início do intervalo temporal (ISO 8601)"),
+    end_date: Optional[str] = Query(None, description="Fim do intervalo temporal (ISO 8601)")
 ):
     """Retorna métricas consolidadas dos KPIs com autenticação estrita e suporte a período temporal."""
-    summary = await acronis.get_summary_kpis(period=period)
+    summary = await acronis.get_summary_kpis(period=period, start_date=start_date, end_date=end_date)
     validated = KPISummaryModel(**summary)
     return validated.model_dump()
 
@@ -324,11 +326,13 @@ async def get_kpis(
 async def get_alerts(
     severity: Optional[str] = Query(None, max_length=20, pattern=r"^(all|critical|warning|info)?$", description="Filtro de severidade: all, critical, warning, info"),
     search: Optional[str] = Query(None, max_length=100, description="Busca textual por nome da máquina ou mensagem de alerta"),
-    period: Optional[str] = Query(None, pattern=r"^(daily|weekly|monthly)?$", description="Filtro de período: daily, weekly, monthly")
+    period: Optional[str] = Query(None, pattern=r"^(daily|weekly|monthly)?$", description="Filtro de período: daily, weekly, monthly"),
+    start_date: Optional[str] = Query(None, description="Início do intervalo temporal (ISO 8601)"),
+    end_date: Optional[str] = Query(None, description="Fim do intervalo temporal (ISO 8601)")
 ):
     """Retorna a lista de Alertas da plataforma Acronis com filtros aplicados e inputs sanitizados."""
     clean_search = sanitize_user_input(search, max_len=100)
-    alerts = await acronis.get_alerts(severity=severity, search=clean_search, period=period)
+    alerts = await acronis.get_alerts(severity=severity, search=clean_search, period=period, start_date=start_date, end_date=end_date)
     return {"alerts": alerts, "count": len(alerts)}
 
 @app.get("/api/resources", dependencies=[Depends(require_auth)])
@@ -426,10 +430,12 @@ async def get_m365_account_details(
 
 @app.get("/api/analytics/charts", dependencies=[Depends(require_auth)])
 async def get_analytics_charts(
-    period: str = Query("daily", pattern=r"^(daily|weekly|monthly)$", description="Período de consolidação: daily, weekly, monthly")
+    period: str = Query("daily", pattern=r"^(daily|weekly|monthly)$", description="Período de consolidação: daily, weekly, monthly"),
+    start_date: Optional[str] = Query(None, description="Início do intervalo temporal (ISO 8601)"),
+    end_date: Optional[str] = Query(None, description="Fim do intervalo temporal (ISO 8601)")
 ):
     """Retorna dados consolidados para alimentar os gráficos analíticos do Dashboard de acordo com o período selecionado."""
-    return await acronis.get_analytics_charts(period=period)
+    return await acronis.get_analytics_charts(period=period, start_date=start_date, end_date=end_date)
 
 @app.get("/api/url_filtering/alerts", dependencies=[Depends(require_auth)])
 async def get_url_filtering_alerts(

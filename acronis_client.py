@@ -19,6 +19,88 @@ class AcronisAPIError(Exception):
         self.status_code = status_code
         self.details = details
 
+def parse_iso_datetime(dt_str: Any) -> Optional[datetime]:
+    """
+    Converte com precisão qualquer formato de data/hora (ISO 8601, RFC 3339, Unix epoch)
+    para um objeto datetime timezone-aware em UTC.
+    """
+    if not dt_str or dt_str == "N/A":
+        return None
+    try:
+        if isinstance(dt_str, (int, float)):
+            ts = float(dt_str)
+            if ts > 1e11:
+                ts /= 1000.0
+            return datetime.fromtimestamp(ts, tz=timezone.utc)
+
+        clean = str(dt_str).strip()
+        if "." in clean:
+            parts = clean.split(".", 1)
+            date_sec = parts[0]
+            rest = parts[1]
+            tz_match = re.search(r'([Zz]|[+-]\d{2}:?\d{2})', rest)
+            if tz_match:
+                frac = rest[:tz_match.start()][:6]
+                tz_str = tz_match.group(0)
+                clean = f"{date_sec}.{frac}{tz_str}"
+            else:
+                frac = rest[:6]
+                clean = f"{date_sec}.{frac}"
+        clean = clean.replace("Z", "+00:00").replace("z", "+00:00")
+        dt = datetime.fromisoformat(clean)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+def resolve_period_range(
+    period: Optional[str] = "daily",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> tuple[datetime, datetime]:
+    """
+    Retorna o intervalo estrito [start_dt, end_dt] em UTC.
+    Para o período 'daily':
+    - Se start_date fornecido, respeita o ISO 8601 informado pelo navegador do cliente (início do dia civil local).
+    - Caso contrário, calcula estritamente o início do dia civil atual (00:00:00.000) no fuso local do sistema.
+    - end_dt é o final do dia civil atual (23:59:59.999) ou o momento atual.
+    """
+    now_utc = datetime.now(timezone.utc)
+    parsed_start = parse_iso_datetime(start_date)
+    parsed_end = parse_iso_datetime(end_date)
+
+    clean_period = (period or "daily").lower()
+    if clean_period not in ["daily", "weekly", "monthly", "day", "week", "month"]:
+        clean_period = "daily"
+
+    if clean_period in ["daily", "day"]:
+        if parsed_start:
+            start_dt = parsed_start
+        else:
+            local_now = datetime.now().astimezone()
+            local_start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_dt = local_start_of_day.astimezone(timezone.utc)
+
+        if parsed_end:
+            end_dt = parsed_end
+        else:
+            local_now = datetime.now().astimezone()
+            local_end_of_day = local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            end_dt = local_end_of_day.astimezone(timezone.utc)
+
+    elif clean_period in ["weekly", "week"]:
+        start_dt = parsed_start or (now_utc - timedelta(days=7))
+        end_dt = parsed_end or now_utc
+    elif clean_period in ["monthly", "month"]:
+        start_dt = parsed_start or (now_utc - timedelta(days=30))
+        end_dt = parsed_end or now_utc
+    else:
+        start_dt = parsed_start or (now_utc - timedelta(days=1))
+        end_dt = parsed_end or now_utc
+
+    return start_dt, end_dt
+
 class AcronisClient:
     """
     Cliente HTTP avançado para a API do Acronis Cyber Protect Cloud.
@@ -258,18 +340,25 @@ class AcronisClient:
 
         return []
 
-    async def get_alerts(self, severity: Optional[str] = None, search: Optional[str] = None, period: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_alerts(
+        self,
+        severity: Optional[str] = None,
+        search: Optional[str] = None,
+        period: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Busca a lista de Alertas da API da Acronis (/api/alert_manager/v1/alerts).
         Garante veracidade absoluta: zero mocks ou dados fictícios em caso de erro na API oficial.
-        Suporta filtro temporal de período (daily = apenas hoje/24h, weekly = 7 dias, monthly = 30 dias).
+        Suporta filtro temporal de período (daily = apenas dia civil atual, weekly = 7 dias, monthly = 30 dias).
         """
         if self.is_mock:
-            return self._filter_alerts(self._generate_mock_alerts(), severity, search, period=period)
+            return self._filter_alerts(self._generate_mock_alerts(), severity, search, period=period, start_date=start_date, end_date=end_date)
 
         cached_alerts = self._get_cached("alerts", ttl=30.0)
         if cached_alerts is not None:
-            return self._filter_alerts(cached_alerts, severity, search, period=period)
+            return self._filter_alerts(cached_alerts, severity, search, period=period, start_date=start_date, end_date=end_date)
 
         candidate_paths = [
             "/api/alert_manager/v1/alerts",
@@ -318,7 +407,7 @@ class AcronisClient:
                                 })
 
                             self._set_cached("alerts", formatted_alerts)
-                            return self._filter_alerts(formatted_alerts, severity, search, period=period)
+                            return self._filter_alerts(formatted_alerts, severity, search, period=period, start_date=start_date, end_date=end_date)
                         else:
                             last_error = f"HTTP {response.status_code}: {response.text[:200]}"
                             logger.warning(f"Endpoint de alertas {url} retornou {last_error}")
@@ -856,7 +945,13 @@ class AcronisClient:
         self._set_cached("policies", final_policies)
         return final_policies
 
-    async def get_backup_metrics(self, resources: List[Dict[str, Any]], period: str = "daily") -> Dict[str, int]:
+    async def get_backup_metrics(
+        self,
+        resources: List[Dict[str, Any]],
+        period: str = "daily",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Dict[str, int]:
         """
         Calcula as métricas de backups (sucesso, falhas e avisos) exclusivamente para o escopo
         de máquinas/agentes reais gerenciados, sem duplicar o total de máquinas cegamente.
@@ -885,6 +980,7 @@ class AcronisClient:
                 "warning": warning_cnt * mult
             }
 
+        start_dt, end_dt = resolve_period_range(clean_period, start_date, end_date)
         valid_res_ids = {str(r["id"]) for r in resources if r.get("id")}
         valid_agent_ids = {str(r.get("agent_id")) for r in resources if r.get("agent_id")}
 
@@ -896,8 +992,6 @@ class AcronisClient:
                     f"{self.base_url}/api/task_manager/v2/activities?limit=1000",
                     f"{self.base_url}/api/task_manager/v1/activities?limit=1000"
                 ]
-                now = datetime.now(timezone.utc)
-                max_hours = 26 if clean_period == "daily" else (168 if clean_period == "weekly" else 720)
 
                 for act_url in candidate_act_urls:
                     try:
@@ -924,14 +1018,9 @@ class AcronisClient:
 
                                 done_time = act.get("completedAt") or act.get("completed_at") or act.get("updatedAt") or act.get("createdAt")
                                 if done_time:
-                                    try:
-                                        clean_ts = done_time.split(".")[0] + "Z" if "." in done_time else done_time
-                                        dt = datetime.fromisoformat(clean_ts.replace("Z", "+00:00"))
-                                        diff_h = (now - dt).total_seconds() / 3600.0
-                                        if diff_h < 0 or diff_h > max_hours:
-                                            continue
-                                    except Exception:
-                                        pass
+                                    dt = parse_iso_datetime(done_time)
+                                    if not dt or not (start_dt <= dt <= end_dt):
+                                        continue
 
                                 tid = act.get("id") or act.get("taskId") or f"{c_id}_{done_time}"
                                 if tid in seen_tasks:
@@ -950,7 +1039,7 @@ class AcronisClient:
                                     act_warning += 1
 
                             if found_backup_tasks > 0:
-                                logger.info(f"[API AUDIT] Atividades de backup apuradas via API: {act_success} sucessos, {act_failed} falhas, {act_warning} avisos.")
+                                logger.info(f"[API AUDIT] Atividades de backup apuradas via API ({clean_period}): {act_success} sucessos, {act_failed} falhas, {act_warning} avisos.")
                                 return {
                                     "success": act_success,
                                     "failed": act_failed,
@@ -962,9 +1051,6 @@ class AcronisClient:
             logger.warning(f"Erro ao buscar atividades da API Acronis: {e_act}")
 
         # 2. Fallback baseado no status e timestamp de backup dos recursos filtrados
-        now = datetime.now(timezone.utc)
-        max_hours = 26 if clean_period == "daily" else (168 if clean_period == "weekly" else 720)
-
         res_success = 0
         res_failed = 0
         res_warning = 0
@@ -975,14 +1061,9 @@ class AcronisClient:
 
             is_recent = False
             if bkp_time and bkp_time != "N/A":
-                try:
-                    clean_ts = bkp_time.split(".")[0] + "Z" if "." in bkp_time else bkp_time
-                    dt = datetime.fromisoformat(clean_ts.replace("Z", "+00:00"))
-                    diff_h = (now - dt).total_seconds() / 3600.0
-                    if 0 <= diff_h <= max_hours:
-                        is_recent = True
-                except Exception:
-                    pass
+                dt = parse_iso_datetime(bkp_time)
+                if dt and (start_dt <= dt <= end_dt):
+                    is_recent = True
 
             if bkp_status in ["success", "completed", "ok"]:
                 if is_recent:
@@ -1007,22 +1088,27 @@ class AcronisClient:
             "warning": res_warning * mult
         }
 
-    async def get_summary_kpis(self, period: str = "daily") -> Dict[str, Any]:
+    async def get_summary_kpis(
+        self,
+        period: str = "daily",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Calcula as métricas e estatísticas consolidadas dos 6 Cards Estratégicos do Dashboard.
-        Regra padrão: Exibe estritamente dados diários (do dia atual).
+        Regra padrão: Exibe estritamente dados diários (do dia civil atual).
         Dados consolidados (semanais ou mensais) são processados quando especificado no seletor de período.
         """
         clean_period = (period or "daily").lower()
         if clean_period not in ["daily", "weekly", "monthly"]:
             clean_period = "daily"
 
-        cache_key = f"summary_kpis_{clean_period}"
+        cache_key = f"summary_kpis_{clean_period}_{start_date}_{end_date}"
         cached = self._get_cached(cache_key, ttl=30.0)
         if cached is not None:
             return cached
 
-        alerts = await self.get_alerts(period=clean_period)
+        alerts = await self.get_alerts(period=clean_period, start_date=start_date, end_date=end_date)
         resources = await self.get_resources()
         policies = await self.get_protection_policies()
         storage_gb = await self.get_storage_usage_gb()
@@ -1080,7 +1166,7 @@ class AcronisClient:
             health_status_color = "#EF4444"
 
         # Backups calculados estritamente sobre o escopo de agentes reais e rotinas concluídas
-        backup_metrics = await self.get_backup_metrics(resources, period=clean_period)
+        backup_metrics = await self.get_backup_metrics(resources, period=clean_period, start_date=start_date, end_date=end_date)
         success_backups = backup_metrics["success"]
         failed_backups = backup_metrics["failed"]
         warning_backups = backup_metrics["warning"]
@@ -1300,23 +1386,29 @@ class AcronisClient:
 
         return self._generate_mock_m365_details(target_account)
 
-    async def get_analytics_charts(self, period: str = "daily") -> Dict[str, Any]:
+    async def get_analytics_charts(
+        self,
+        period: str = "daily",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Retorna os dados consolidados para os 5 gráficos analíticos do Dashboard.
-        Regra padrão: Exibe estritamente dados diários (do dia atual).
+        Regra padrão: Exibe estritamente dados diários (do dia civil atual).
         Dados consolidados (semanais ou mensais) são processados quando selecionado no seletor de tempo.
         """
         clean_period = (period or "daily").lower()
         if clean_period not in ["daily", "weekly", "monthly"]:
             clean_period = "daily"
 
-        cache_key = f"analytics_charts_{clean_period}"
+        cache_key = f"analytics_charts_{clean_period}_{start_date}_{end_date}"
         cached = self._get_cached(cache_key, ttl=30.0)
         if cached is not None:
             return cached
 
         resources = await self.get_resources()
-        alerts = await self.get_alerts(period=clean_period)
+        alerts = await self.get_alerts(period=clean_period, start_date=start_date, end_date=end_date)
+        start_dt, end_dt = resolve_period_range(clean_period, start_date, end_date)
         m365_summary = await self.get_m365_summary()
         storage_total = await self.get_storage_usage_gb()
 
@@ -1433,25 +1525,20 @@ class AcronisClient:
 
         now = datetime.now(timezone.utc)
         if clean_period == "daily":
-            # 6 intervalos de 4 horas nas últimas 24h
+            # 6 intervalos de 4 horas no dia civil de hoje (00:00 às 24:00)
             timeline_labels = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Agora"]
             crit_counts = [0] * 7
             threat_counts = [0] * 7
             for a in alerts:
                 cat = a.get("created_at") or a.get("createdAt")
                 if cat and cat != "N/A":
-                    try:
-                        clean = cat.split(".")[0] + "Z" if "." in cat else cat
-                        dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
-                        diff_h = (now - dt).total_seconds() / 3600.0
-                        if 0 <= diff_h <= 24:
-                            b_idx = min(5, int(dt.hour // 4))
-                            if a.get("severity") == "critical":
-                                crit_counts[b_idx] += 1
-                            else:
-                                threat_counts[b_idx] += 1
-                    except Exception:
-                        pass
+                    dt = parse_iso_datetime(cat)
+                    if dt and (start_dt <= dt <= end_dt):
+                        b_idx = min(5, int(dt.hour // 4))
+                        if a.get("severity") == "critical":
+                            crit_counts[b_idx] += 1
+                        else:
+                            threat_counts[b_idx] += 1
             crit_counts[6] = crit_counts[5]
             threat_counts[6] = threat_counts[5]
             
@@ -1469,17 +1556,14 @@ class AcronisClient:
             for a in alerts:
                 cat = a.get("created_at") or a.get("createdAt")
                 if cat and cat != "N/A":
-                    try:
-                        clean = cat.split(".")[0] + "Z" if "." in cat else cat
-                        dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+                    dt = parse_iso_datetime(cat)
+                    if dt and (start_dt <= dt <= end_dt):
                         d = dt.date()
                         if d in crit_map:
                             if a.get("severity") == "critical":
                                 crit_map[d] += 1
                             else:
                                 threat_map[d] += 1
-                    except Exception:
-                        pass
             crit_counts = [crit_map[d] for d in week_days]
             threat_counts = [threat_map[d] for d in week_days]
             
@@ -1495,9 +1579,8 @@ class AcronisClient:
             for a in alerts:
                 cat = a.get("created_at") or a.get("createdAt")
                 if cat and cat != "N/A":
-                    try:
-                        clean = cat.split(".")[0] + "Z" if "." in cat else cat
-                        dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+                    dt = parse_iso_datetime(cat)
+                    if dt and (start_dt <= dt <= end_dt):
                         diff_d = (now - dt).total_seconds() / 86400.0
                         if 0 <= diff_d <= 30:
                             b_idx = min(4, int(diff_d // 6))
@@ -1506,8 +1589,6 @@ class AcronisClient:
                                 crit_counts[inv_idx] += 1
                             else:
                                 threat_counts[inv_idx] += 1
-                    except Exception:
-                        pass
 
             rate_labels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
             rate_succ = [rate_success] * 4
@@ -1620,25 +1701,26 @@ class AcronisClient:
         }
 
     # Helper filters
-    def _filter_alerts(self, alerts: List[Dict[str, Any]], severity: Optional[str] = None, search: Optional[str] = None, period: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _filter_alerts(
+        self,
+        alerts: List[Dict[str, Any]],
+        severity: Optional[str] = None,
+        search: Optional[str] = None,
+        period: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         result = alerts
-        if period and period.lower() in ["daily", "weekly", "monthly", "day", "week", "month"]:
-            p = period.lower()
-            now = datetime.now(timezone.utc)
-            max_days = 1.0 if p in ["daily", "day"] else (7.0 if p in ["weekly", "week"] else 30.0)
+        clean_period = (period or "").lower()
+        if clean_period in ["daily", "weekly", "monthly", "day", "week", "month"] or start_date or end_date:
+            start_dt, end_dt = resolve_period_range(period=clean_period or "daily", start_date=start_date, end_date=end_date)
             filtered = []
             for a in result:
                 cat = a.get("created_at") or a.get("createdAt")
                 if not cat or cat == "N/A":
-                    filtered.append(a)
                     continue
-                try:
-                    clean = cat.split(".")[0] + "Z" if "." in cat else cat
-                    dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
-                    diff = (now - dt).total_seconds() / 86400.0
-                    if 0 <= diff <= max_days:
-                        filtered.append(a)
-                except Exception:
+                dt = parse_iso_datetime(cat)
+                if dt and (start_dt <= dt <= end_dt):
                     filtered.append(a)
             result = filtered
 
@@ -1667,9 +1749,21 @@ class AcronisClient:
 
     # Mock Data Generator
     def _generate_mock_alerts(self) -> List[Dict[str, Any]]:
-        now = datetime.now(timezone.utc)
-        def iso_offset(hours=0, days=0):
-            return (now - timedelta(days=days, hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        local_now = datetime.now().astimezone()
+        local_today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # 3 Alertas de Hoje (estritamente dentro do dia civil atual)
+        t_today_1 = (local_today_start + timedelta(minutes=15)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        t_today_2 = (local_today_start + timedelta(hours=2, minutes=30)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        t_today_3 = (local_today_start + timedelta(hours=4, minutes=45)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # 2 Alertas da Semana (3 e 5 dias atrás)
+        t_week_1 = (local_today_start - timedelta(days=3)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        t_week_2 = (local_today_start - timedelta(days=5)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # 2 Alertas do Mês (14 e 22 dias atrás)
+        t_month_1 = (local_today_start - timedelta(days=14)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        t_month_2 = (local_today_start - timedelta(days=22)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         return [
             # Alertas de Hoje (Diário <= 24h)
@@ -1681,7 +1775,7 @@ class AcronisClient:
                 "details": "O job de backup do volume D: falhou devido a espaço insuficiente no storage remoto.",
                 "resource_id": "res-srv-db01",
                 "resource_name": "SRV-DB-PROD-01.jm.corp",
-                "created_at": iso_offset(hours=2),
+                "created_at": t_today_1,
                 "status": "active"
             },
             {
@@ -1692,7 +1786,7 @@ class AcronisClient:
                 "details": "Processo suspeito tentando criptografar arquivos foi interrompido com sucesso.",
                 "resource_id": "res-srv-app02",
                 "resource_name": "SRV-APP-MAIN-02.jm.corp",
-                "created_at": iso_offset(hours=6),
+                "created_at": t_today_2,
                 "status": "active"
             },
             {
@@ -1703,7 +1797,7 @@ class AcronisClient:
                 "details": "Site categorizado como Jogos/Apostas bloqueado pelo filtro de conteúdo web.",
                 "resource_id": "res-desk-fin",
                 "resource_name": "DESKTOP-FINANCE-04.jm.corp",
-                "created_at": iso_offset(hours=10),
+                "created_at": t_today_3,
                 "status": "active"
             },
             # Alertas da Semana (2 a 6 dias atrás)
@@ -1715,7 +1809,7 @@ class AcronisClient:
                 "details": "Patch de segurança KB5034123 pendente de aplicação no host.",
                 "resource_id": "res-srv-db01",
                 "resource_name": "SRV-DB-PROD-01.jm.corp",
-                "created_at": iso_offset(days=3),
+                "created_at": t_week_1,
                 "status": "active"
             },
             {
@@ -1726,7 +1820,7 @@ class AcronisClient:
                 "details": "Agente demorou mais de 15 minutos para reportar telemetria.",
                 "resource_id": "res-desk-fin",
                 "resource_name": "DESKTOP-FINANCE-04.jm.corp",
-                "created_at": iso_offset(days=5),
+                "created_at": t_week_2,
                 "status": "active"
             },
             # Alertas do Mês (10 a 25 dias atrás)
@@ -1738,7 +1832,7 @@ class AcronisClient:
                 "details": "Mídia removível não autorizada foi bloqueada pela política DLP corporativa.",
                 "resource_id": "res-desk-fin",
                 "resource_name": "DESKTOP-FINANCE-04.jm.corp",
-                "created_at": iso_offset(days=14),
+                "created_at": t_month_1,
                 "status": "active"
             },
             {
@@ -1749,7 +1843,7 @@ class AcronisClient:
                 "details": "3 arquivos temporários estavam em uso exclusivo durante a rotina.",
                 "resource_id": "res-srv-db01",
                 "resource_name": "SRV-DB-PROD-01.jm.corp",
-                "created_at": iso_offset(days=22),
+                "created_at": t_month_2,
                 "status": "active"
             }
         ]

@@ -2327,6 +2327,46 @@
         }
 
         /**
+         * Calcula o intervalo civil estrito para cada período no fuso horário local do navegador:
+         * - 'daily': Início 00:00:00.000 de hoje até 23:59:59.999 de hoje.
+         * - 'weekly': Início de 7 dias atrás até o momento atual.
+         * - 'monthly': Início de 30 dias atrás até o momento atual.
+         */
+        function getPeriodDateRange(period = currentDashboardPeriod) {
+            const now = new Date();
+            if (period === 'daily') {
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                return {
+                    start: startOfDay.toISOString(),
+                    end: endOfDay.toISOString(),
+                    period: 'daily'
+                };
+            } else if (period === 'weekly') {
+                const start = new Date();
+                start.setDate(start.getDate() - 7);
+                start.setHours(0, 0, 0, 0);
+                return {
+                    start: start.toISOString(),
+                    end: now.toISOString(),
+                    period: 'weekly'
+                };
+            } else if (period === 'monthly') {
+                const start = new Date();
+                start.setDate(start.getDate() - 30);
+                start.setHours(0, 0, 0, 0);
+                return {
+                    start: start.toISOString(),
+                    end: now.toISOString(),
+                    period: 'monthly'
+                };
+            }
+            return { start: null, end: null, period };
+        }
+
+        /**
          * Seletor de Período do Dashboard:
          * Controla a exibição padrão diária e a alternância explícita para períodos consolidados (Semanal ou Mensal).
          */
@@ -2358,9 +2398,9 @@
             if (period === 'daily') {
                 if (badgeIndicator) badgeIndicator.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 shadow-xs";
                 if (badgeText) badgeText.textContent = "Dados Diários (Hoje)";
-                if (descEl) descEl.textContent = "Exibindo estritamente telemetria e ocorrências operacionais do dia atual (Padrão).";
-                if (badgeTimelinePeriod) badgeTimelinePeriod.textContent = "Hoje (24 Horas)";
-                if (badgeProtectionRatePeriod) badgeProtectionRatePeriod.textContent = "Hoje (Diário)";
+                if (descEl) descEl.textContent = "Exibindo estritamente telemetria e ocorrências operacionais do dia civil atual (00:00 às 23:59).";
+                if (badgeTimelinePeriod) badgeTimelinePeriod.textContent = "Hoje (Dia Atual)";
+                if (badgeProtectionRatePeriod) badgeProtectionRatePeriod.textContent = "Hoje (Dia Atual)";
                 showRefreshToast("Filtrando dashboards: Período Diário (Hoje)", 2000);
             } else if (period === 'weekly') {
                 if (badgeIndicator) badgeIndicator.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800 flex items-center gap-1 shadow-xs";
@@ -2378,9 +2418,10 @@
                 showRefreshToast("Filtrando dashboards: Período Mensal (30 Dias)", 2000);
             }
 
-            // Dispara a consulta dos KPIs e Gráficos com o período selecionado
+            // Dispara a consulta dos KPIs, Gráficos e Alertas com o período selecionado
             fetchKPIs(period);
             fetchAnalyticsCharts(period);
+            fetchAlerts();
         }
 
         /**
@@ -2453,23 +2494,27 @@
             isRefreshing = true;
 
             const btn = document.getElementById('btnRefresh');
-            const icon = document.getElementById('refreshIcon');
             const btnText = document.getElementById('refreshBtnText');
 
-            if (btn) btn.disabled = true;
-            if (icon) icon.classList.add('animate-spin');
-            if (btnText) btnText.textContent = 'Atualizando...';
-
+            // A animação de rotação (spin) e o estado visual de loading são disparados EXCLUSIVAMENTE
+            // quando o usuário clica manualmente no botão (isManual === true).
+            // O polling automático em segundo plano e a carga inicial não alteram o botão nem travam a animação.
             if (isManual) {
+                if (btn) btn.disabled = true;
+                const icon = document.getElementById('refreshIcon');
+                if (icon) icon.classList.add('animate-spin');
+                if (btnText) btnText.textContent = 'Atualizando...';
                 showRefreshToast('Limpando cache e consultando API oficial...');
             }
 
             try {
-                // 1. Limpa o cache em memória no backend para forçar consulta fresca
-                try {
-                    await fetch(`${API_BASE}/api/refresh`, { method: 'POST' });
-                } catch (e) {
-                    console.warn("Aviso ao limpar cache no backend:", e);
+                // 1. Limpa o cache em memória no backend para forçar consulta fresca (se manual)
+                if (isManual) {
+                    try {
+                        await fetch(`${API_BASE}/api/refresh`, { method: 'POST' });
+                    } catch (e) {
+                        console.warn("Aviso ao limpar cache no backend:", e);
+                    }
                 }
 
                 // 2. Consulta em paralelo todos os endpoints do dashboard
@@ -2487,25 +2532,34 @@
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-                if (btnText) btnText.textContent = 'Atualizado!';
-                if (btn) btn.title = `Última sincronização com a API: ${timeStr}`;
-
                 if (isManual) {
+                    if (btnText) btnText.textContent = 'Atualizado!';
                     showRefreshToast(`Dados atualizados com sucesso às ${timeStr}!`, 2500);
                 }
+                if (btn) btn.title = `Última sincronização com a API: ${timeStr}`;
             } catch (err) {
                 console.error("Erro ao atualizar dados do dashboard:", err);
-                if (btnText) btnText.textContent = 'Falha';
                 if (isManual) {
+                    if (btnText) btnText.textContent = 'Falha';
                     showRefreshToast('Falha na sincronização com a API.', 3000);
                 }
             } finally {
-                setTimeout(() => {
-                    if (icon) icon.classList.remove('animate-spin');
-                    if (btnText) btnText.textContent = 'Atualizar Agora';
-                    if (btn) btn.disabled = false;
+                // Remove incondicionalmente a animação de rotação e restaura o botão
+                const finishCleanup = () => {
+                    const iconEl = document.getElementById('refreshIcon');
+                    if (iconEl) iconEl.classList.remove('animate-spin');
+                    const textEl = document.getElementById('refreshBtnText');
+                    if (textEl) textEl.textContent = 'Atualizar Agora';
+                    const btnEl = document.getElementById('btnRefresh');
+                    if (btnEl) btnEl.disabled = false;
                     isRefreshing = false;
-                }, 1000);
+                };
+
+                if (isManual) {
+                    setTimeout(finishCleanup, 600);
+                } else {
+                    finishCleanup();
+                }
             }
         }
 
@@ -2810,7 +2864,11 @@
 
         async function fetchKPIs(period = currentDashboardPeriod) {
             try {
-                const res = await fetch(`${API_BASE}/api/kpis?period=${encodeURIComponent(period)}`);
+                const range = getPeriodDateRange(period);
+                let url = `${API_BASE}/api/kpis?period=${encodeURIComponent(period)}`;
+                if (range.start) url += `&start_date=${encodeURIComponent(range.start)}`;
+                if (range.end) url += `&end_date=${encodeURIComponent(range.end)}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 auditLogApi(`/api/kpis?period=${period}`, res.status, data);
 
@@ -2970,7 +3028,10 @@
 
         async function fetchAlerts() {
             try {
-                let url = `${API_BASE}/api/alerts?severity=${currentAlertFilter}`;
+                const range = getPeriodDateRange(currentDashboardPeriod);
+                let url = `${API_BASE}/api/alerts?severity=${currentAlertFilter}&period=${encodeURIComponent(currentDashboardPeriod)}`;
+                if (range.start) url += `&start_date=${encodeURIComponent(range.start)}`;
+                if (range.end) url += `&end_date=${encodeURIComponent(range.end)}`;
                 if (alertSearchQuery) {
                     url += `&search=${encodeURIComponent(alertSearchQuery)}`;
                 }
@@ -4087,7 +4148,11 @@
 
         async function fetchAnalyticsCharts(period = currentDashboardPeriod) {
             try {
-                const res = await fetch(`${API_BASE}/api/analytics/charts?period=${encodeURIComponent(period)}`);
+                const range = getPeriodDateRange(period);
+                let url = `${API_BASE}/api/analytics/charts?period=${encodeURIComponent(period)}`;
+                if (range.start) url += `&start_date=${encodeURIComponent(range.start)}`;
+                if (range.end) url += `&end_date=${encodeURIComponent(range.end)}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 auditLogApi(`/api/analytics/charts?period=${period}`, res.status, data);
 
