@@ -458,5 +458,17 @@ def get_stats() -> Dict[str, int]:
     finally:
         conn.close()
 
+def log_audit_event(action: str, details: str, username: Optional[str] = "admin", ip_address: Optional[str] = None) -> None:
+    """Registra evento de auditoria administrativa de segurança."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        log_audit(cursor, None, username, action, ip_address, details)
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
 # Auto-inicializa na importação
 init_db()

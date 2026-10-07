@@ -1,31 +1,68 @@
 services:
-  # 1. Painel Principal de Monitoramento (JM Cyber Protect)
+  # 1. Painel Principal de Monitoramento & API Proxy UniFi / Acronis
   painel-cyber:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: jm_cyber_protect_dashboard
-    restart: always
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
+    restart: unless-stopped
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips="*"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./auth.db:/app/auth.db
-      - ./.env:/app/.env
+      - ./.env:/app/.env:ro
       - ./static:/app/static
+      - ./templates:/app/templates
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - jm_internal_network
 
-  # 2. Console Administrativo Externo Isolado (Gestão de Utilizadores)
+  # 2. Console Administrativo Externo Isolado (Gestão de Utilizadores e Segurança)
   admin-console:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: jm_cyber_protect_admin
-    restart: always
-    command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1
+    restart: unless-stopped
+    command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1 --proxy-headers --forwarded-allow-ips="*"
     ports:
-      # Dica de segurança: em produção pode amarrar em 127.0.0.1:8001 se usar Nginx reverso
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     volumes:
       - ./auth.db:/app/auth.db
-      - ./.env:/app/.env
+      - ./.env:/app/.env:ro
       - ./static:/app/static
+      - ./templates:/app/templates
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/admin', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - jm_internal_network
+
+networks:
+  jm_internal_network:
+    driver: bridge

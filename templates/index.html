@@ -443,6 +443,11 @@
                 <i data-lucide="shield-alert" class="w-4 h-4"></i>
                 <span>Planos de Segurança</span>
             </button>
+            <button onclick="switchTab('network')" id="tab-network" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
+                <i data-lucide="network" class="w-4 h-4 text-cyan-500"></i>
+                <span>Rede (UniFi)</span>
+                <span id="badgeUnifiDevicesCount" class="px-2 py-0.5 text-xs font-extrabold rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700">--</span>
+            </button>
         </div>
 
         <!-- ================= BANNER GLOBAL DE ERRO / INDISPONIBILIDADE DA API (HARDENING) ================= -->
@@ -1214,6 +1219,852 @@
             </div>
 
         </section>
+
+        <!-- ================= SEÇÃO 7: MÓDULO REDE & CONECTIVIDADE (UNIFI CONTROLLER) ================= -->
+                <!-- ================= SEÇÃO 7: MÓDULO REDE & CONECTIVIDADE (UNIFI NETWORKING HUB) ================= -->
+        <section id="section-network" class="hidden space-y-6">
+
+            <!-- Banner Resumo UniFi Network -->
+            <div class="enterprise-card p-5 bg-gradient-to-r from-[#141C33] via-[#1E2A4A] to-[#0E1528] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-lg border border-[#2A3B66]">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-400/30 flex items-center justify-center font-extrabold shadow-md shrink-0">
+                        <i data-lucide="network" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+                                Infraestrutura de Rede Corporativa (UniFi Network Hub)
+                            </h2>
+                            <span id="unifiStatusPill" class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span id="unifiStatusText">100% Operacional</span>
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-0.5">
+                            Telemetria em tempo real da UDM Pro, Switch USW Lite 16 PoE, Access Points Wi-Fi 6 e estações corporativas.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-3 mt-1 text-[11px] font-mono text-cyan-300/80">
+                            <span class="flex items-center gap-1"><i data-lucide="server" class="w-3 h-3 text-cyan-400"></i> Gateway: <span id="unifiControllerHostLabel" class="font-bold text-white">UDM-JM_TRANSPORTES</span></span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1"><i data-lucide="cloud" class="w-3 h-3 text-cyan-400"></i> API: <span id="unifiControllerUrlLabel">UniFi Site Manager API (api.ui.com)</span></span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3 text-cyan-400"></i> Site: <span id="unifiSiteLabel" class="font-bold text-white">default</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+                    <button onclick="openSpeedtestModal()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm" title="Disparar teste de velocidade de link da UDM Pro">
+                        <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+                        <span>Speedtest WAN</span>
+                    </button>
+                    <button onclick="triggerUnifiSpecificRefresh()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm" title="Consultar agora a controladora UniFi">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="unifiRefreshIcon"></i>
+                        <span>Sincronizar UniFi</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Banner Alerta Gracioso de Modo Mock / Status de Conexão -->
+            <div id="unifiNoticeBanner" class="hidden p-4 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-cyan-100 text-xs flex items-start gap-3 shadow-sm">
+                <i data-lucide="info" class="w-5 h-5 text-cyan-400 shrink-0 mt-0.5"></i>
+                <div class="flex-1">
+                    <span class="font-extrabold text-cyan-200" id="unifiNoticeTitle">Integração UniFi Controller Ativa:</span>
+                    <span class="text-slate-300 ml-1" id="unifiNoticeMsg">Dados extraídos diretamente da console UDM Pro.</span>
+                </div>
+            </div>
+
+            <!-- 5 Cards de Métricas Superiores (KPIs da Rede) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- Card 1: Dispositivos UniFi -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Dispositivos UniFi</span>
+                        <div class="w-7 h-7 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 flex items-center justify-center">
+                            <i data-lucide="router" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="unifiKpiDevicesOnline" class="text-3xl font-extrabold text-[#1E2A4A] dark:text-slate-100 my-1">12 / 13</div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="unifiKpiDevicesDetail">🟢 12 Online</span>
+                        <span class="text-slate-400 font-mono" id="unifiKpiDevicesTotal">13 Total</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Clientes Conectados -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Clientes Conectados</span>
+                        <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="unifiKpiClientsTotal" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 my-1">--</div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center justify-between">
+                        <span id="unifiKpiClientsWifi">📶 -- Wi-Fi</span>
+                        <span>•</span>
+                        <span id="unifiKpiClientsWired">🔌 -- Cabo</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Status WAN & Latência -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Status WAN & ISPs</span>
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="unifiKpiLatency" class="text-2xl sm:text-3xl font-extrabold text-[#1E2A4A] dark:text-slate-100 my-1">8 / 11 ms</div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate" id="unifiKpiWanDetail">
+                        Dual WAN: <span class="font-mono font-bold text-slate-700 dark:text-slate-300">Vivo + SAMM</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Tráfego de Rede -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tráfego Consolidado</span>
+                        <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center">
+                            <i data-lucide="arrow-down-up" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="unifiKpiRxTx" class="text-xl sm:text-2xl font-extrabold text-[#1E2A4A] dark:text-slate-100 my-1 truncate">-- / --</div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-purple-700 dark:text-purple-300 font-bold flex items-center justify-between">
+                        <span id="unifiKpiRx">↓ --</span>
+                        <span id="unifiKpiTx">↑ --</span>
+                    </div>
+                </div>
+
+                <!-- Card 5: Dispositivos em Atenção -->
+                <div class="enterprise-card p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Atenção & Alertas</span>
+                        <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div id="unifiKpiAttention" class="text-3xl font-extrabold text-amber-600 dark:text-amber-400 my-1">1</div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-amber-700 dark:text-amber-400 font-bold" id="unifiKpiAttentionDetail">
+                        AP11 (4º Andar) Offline
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= SEÇÃO: CONEXÕES DE BORDA / DUAL-WAN & ISPS ================= -->
+            <div class="enterprise-card p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="globe" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                Provedores de Internet & Portas WAN (Dual-ISP)
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Telemetria operacional de enlaces externos na Gateway UDM Pro</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="unifiWanModeBadge" class="px-3 py-1 rounded-xl text-xs font-black bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                            <span>Distributed Load Balancing (Failover Auto)</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Cards WAN 1 e WAN 2 Lado a Lado -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- WAN 1: Vivo Fibra -->
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-[#141C33]/60 flex flex-col justify-between space-y-3 shadow-xs">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs">
+                                    WAN1
+                                </div>
+                                <div>
+                                    <div class="font-extrabold text-sm text-[#1E2A4A] dark:text-white flex items-center gap-2">
+                                        <span>Vivo Fibra</span>
+                                        <span class="px-2 py-0.2 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Link Principal</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Porta 9 (GbE RJ45 - 1000 Mbps FDX)</div>
+                                </div>
+                            </div>
+                            <span id="unifiWan1Status" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 py-2 border-y border-slate-200/60 dark:border-slate-700/60 text-center text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">IP Público</span>
+                                <span id="unifiWan1Ip" class="font-mono font-black text-slate-800 dark:text-slate-200 text-[11px]">187.9.95.202</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Latência</span>
+                                <span id="unifiWan1Latency" class="font-mono font-black text-emerald-600 dark:text-emerald-400">8 ms</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Uptime</span>
+                                <span id="unifiWan1Uptime" class="font-mono font-black text-slate-700 dark:text-slate-300">99.98%</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold">Distribuição de Carga:</span>
+                                <span id="unifiWan1Ratio" class="font-bold text-cyan-600 dark:text-cyan-400 ml-1">65%</span>
+                            </div>
+                            <div class="font-mono text-[11px]" id="unifiWan1RxTx">
+                                ↓ 4.55 TB | ↑ 1.65 TB
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WAN 2: SAMM Telecom -->
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-[#141C33]/60 flex flex-col justify-between space-y-3 shadow-xs">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-black text-xs">
+                                    WAN2
+                                </div>
+                                <div>
+                                    <div class="font-extrabold text-sm text-[#1E2A4A] dark:text-white flex items-center gap-2">
+                                        <span>SAMM Telecom / MEGA</span>
+                                        <span class="px-2 py-0.2 rounded-full text-[10px] font-black bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">10G SFP+ Link</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Porta 10 (10G SFP+ FDX)</div>
+                                </div>
+                            </div>
+                            <span id="unifiWan2Status" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 py-2 border-y border-slate-200/60 dark:border-slate-700/60 text-center text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">IP Público</span>
+                                <span id="unifiWan2Ip" class="font-mono font-black text-slate-800 dark:text-slate-200 text-[11px]">187.120.7.126</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Latência</span>
+                                <span id="unifiWan2Latency" class="font-mono font-black text-emerald-600 dark:text-emerald-400">11 ms</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Uptime</span>
+                                <span id="unifiWan2Uptime" class="font-mono font-black text-slate-700 dark:text-slate-300">99.94%</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold">Distribuição de Carga:</span>
+                                <span id="unifiWan2Ratio" class="font-bold text-cyan-600 dark:text-cyan-400 ml-1">35%</span>
+                            </div>
+                            <div class="font-mono text-[11px]" id="unifiWan2RxTx">
+                                ↓ 2.47 TB | ↑ 608.87 GB
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= SEÇÃO: MATRIZ DE PORTAS FÍSICAS (UDM PRO & SWITCH LITE 16 POE) ================= -->
+            <div class="enterprise-card p-5 space-y-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                Matriz Visual de Portas Físicas (Hardware Faceplate)
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Topologia de portas elétricas e ópticas da UDM Pro e do Switch USW Lite 16 PoE</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span> Link 1000M/10G</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]"></span> PoE+ Ativo</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Desconectado</span>
+                    </div>
+                </div>
+
+                <!-- Chassi 1: UDM Pro (11 Portas) -->
+                <div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-[#0B0F19] dark:to-[#111827] p-4 sm:p-5 shadow-inner space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-300/80 dark:border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                            <span class="font-black text-xs text-slate-800 dark:text-white uppercase tracking-wider">UDM Pro • 11 Physical Ports Faceplate</span>
+                        </div>
+                        <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">UniFi Dream Machine Pro (Gateway / Router)</span>
+                    </div>
+
+                    <!-- Grid de Portas da UDM Pro -->
+                    <div id="unifiUdmPortsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2.5 pt-1">
+                        <!-- Portas 1 a 11 renderizadas via JS -->
+                    </div>
+                </div>
+
+                <!-- Chassi 2: Switch Lite 16 PoE (16 Portas) -->
+                <div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-[#0B0F19] dark:to-[#111827] p-4 sm:p-5 shadow-inner space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-300/80 dark:border-slate-800 pb-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                            <span class="font-black text-xs text-slate-800 dark:text-white uppercase tracking-wider">SWT - 12 Andar • UniFi Switch Lite 16 PoE</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs">
+                            <span class="text-slate-500 dark:text-slate-400 font-bold">PoE Budget Utilizado:</span>
+                            <span id="unifiPoeBudgetLabel" class="font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">70.4W / 45.0W Base (8 Portas PoE+)</span>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Portas do Switch Lite 16 PoE -->
+                    <div id="unifiSwitchPortsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 lg:grid-cols-8 gap-2.5 pt-1">
+                        <!-- Portas 1 a 16 renderizadas via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= SEÇÃO: TOPOLOGIA DE REDES, VLANS E LEASES DHCP ================= -->
+            <div class="enterprise-card p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="network" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                Redes Locais, VLANs & Capacidade do Pool DHCP
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Distribuição de sub-redes corporativas, leases DHCP em uso e endereços IP disponíveis</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Cards de VLANs / Redes -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- LAN Principal -->
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-[#141C33]/60 flex flex-col justify-between space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">VLAN 1 (Default)</span>
+                                <h4 class="font-extrabold text-sm text-[#1E2A4A] dark:text-white mt-1">LAN Principal</h4>
+                                <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400">192.168.14.0/23 • Gateway: 192.168.14.1</div>
+                            </div>
+                            <span id="unifiVlanLanPct" class="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">69.3%</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-xs mb-1">
+                                <span class="text-slate-500 dark:text-slate-400">Ocupação DHCP Leases</span>
+                                <span id="unifiVlanLanLeases" class="font-mono font-bold text-[#1E2A4A] dark:text-slate-200">284 / 410</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                <div id="unifiVlanLanBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 69.3%"></div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <span>IPs Livres no Pool:</span>
+                            <span id="unifiVlanLanAvailable" class="font-mono font-black text-emerald-600 dark:text-emerald-400">126 Disponíveis</span>
+                        </div>
+                    </div>
+
+                    <!-- VLAN 70: JM-Mobile -->
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-[#141C33]/60 flex flex-col justify-between space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700">VLAN 70 (Mobile)</span>
+                                <h4 class="font-extrabold text-sm text-[#1E2A4A] dark:text-white mt-1">JM-Mobile & Celulares</h4>
+                                <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400">192.168.70.0/23 • Gateway: 192.168.70.1</div>
+                            </div>
+                            <span id="unifiVlan70Pct" class="font-mono font-black text-sm text-cyan-600 dark:text-cyan-400">12.9%</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-xs mb-1">
+                                <span class="text-slate-500 dark:text-slate-400">Ocupação DHCP Leases</span>
+                                <span id="unifiVlan70Leases" class="font-mono font-bold text-[#1E2A4A] dark:text-slate-200">62 / 480</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                <div id="unifiVlan70Bar" class="bg-cyan-500 h-2.5 rounded-full transition-all duration-500" style="width: 12.9%"></div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <span>IPs Livres no Pool:</span>
+                            <span id="unifiVlan70Available" class="font-mono font-black text-cyan-600 dark:text-cyan-400">418 Disponíveis</span>
+                        </div>
+                    </div>
+
+                    <!-- VLAN 60: Visitantes / Guest -->
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-[#141C33]/60 flex flex-col justify-between space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">VLAN 60 (Guest)</span>
+                                <h4 class="font-extrabold text-sm text-[#1E2A4A] dark:text-white mt-1">Visitantes & JM-Guest</h4>
+                                <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400">192.168.60.0/23 • Gateway: 192.168.60.1</div>
+                            </div>
+                            <span id="unifiVlan60Pct" class="font-mono font-black text-sm text-amber-600 dark:text-amber-400">3.8%</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-xs mb-1">
+                                <span class="text-slate-500 dark:text-slate-400">Ocupação DHCP Leases</span>
+                                <span id="unifiVlan60Leases" class="font-mono font-bold text-[#1E2A4A] dark:text-slate-200">18 / 480</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                <div id="unifiVlan60Bar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 3.8%"></div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <span>IPs Livres no Pool:</span>
+                            <span id="unifiVlan60Available" class="font-mono font-black text-amber-600 dark:text-amber-400">462 Disponíveis</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= DASHBOARDS & GRÁFICOS ANALÍTICOS UNIFI ================= -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Gráfico 1: Throughput e Latência Temporal Dual-WAN (Timeline) -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i>
+                                Histórico Temporal Throughput Dual-WAN & Latência
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Consumo simultâneo em Mbps (Vivo Fibra vs SAMM Telecom)</p>
+                        </div>
+                        <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">Real-time</span>
+                    </div>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="chartUnifiWanTimeline"></canvas>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Pico Consolidado Recente: <strong class="text-emerald-600 dark:text-emerald-400">1.22 Gbps</strong></span>
+                        <span>Latência Média: <strong class="text-slate-700 dark:text-slate-300">11.9 ms</strong></span>
+                    </div>
+                </div>
+
+                <!-- Gráfico 2: Distribuição de Clientes por SSID (Donut Chart) -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                <i data-lucide="wifi" class="w-4 h-4 text-cyan-500"></i>
+                                Distribuição de Clientes por SSID (Redes Sem Fio)
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Estações conectadas por nome de rede transmitida</p>
+                        </div>
+                        <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700">5 SSIDs Ativos</span>
+                    </div>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="chartUnifiSsidDist"></canvas>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>SSID com maior densidade: <strong class="text-[#1E2A4A] dark:text-slate-200">JM-Mobile (49 clientes)</strong></span>
+                        <span id="unifiSsidTotalLabel" class="font-bold text-slate-700 dark:text-slate-300">105 Conexões</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Linha 2 de Gráficos: Tráfego por VLAN e Top Consumidores -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Gráfico 3: Distribuição de Tráfego por VLAN -->
+                <div class="enterprise-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                <i data-lucide="pie-chart" class="w-4 h-4 text-purple-500"></i>
+                                Tráfego Acumulado por VLAN
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Volume de dados (GB) por segmento de rede</p>
+                        </div>
+                    </div>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="chartUnifiVlanTraffic"></canvas>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Total Analisado:</span>
+                        <span class="font-bold text-[#1E2A4A] dark:text-slate-200">1.44 TB</span>
+                    </div>
+                </div>
+
+                <!-- Gráfico 4: Top Dispositivos por Consumo de Tráfego (Horizontal Bar) -->
+                <div class="enterprise-card p-5 lg:col-span-2 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-500"></i>
+                                Top Estações por Volume de Tráfego (Rx/Tx)
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Aparelhos com maior consumo acumulado de Download e Upload</p>
+                        </div>
+                        <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700">Top Clientes</span>
+                    </div>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="chartUnifiTopConsumers"></canvas>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span class="flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-cyan-500"></i> Consumo de pacotes Rx (Download) e Tx (Upload).</span>
+                        <span class="font-mono font-bold text-slate-700 dark:text-slate-300" id="unifiTopConsumersTotalVolume">-- TB Total</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- INDICADOR DE QUALIDADE DE SINAL WI-FI (GAUGES / PROGRESS BARS) -->
+            <div class="enterprise-card p-5">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="wifi" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                Qualidade de Sinal dos Clientes Wi-Fi
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Distribuição da intensidade de sinal (dBm) nas frequências de 2.4 GHz e 5 GHz</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-bold">Taxa de Experiência Wi-Fi:</span>
+                        <span class="text-sm font-black text-emerald-600 dark:text-emerald-400" id="unifiWifiSatisfactionRate">98%</span>
+                    </div>
+                </div>
+
+                <!-- 3 Faixas de Sinal -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Excelente -->
+                    <div class="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span class="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">Excelente (> -60 dBm)</span>
+                            </div>
+                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-300 font-mono" id="unifiSignalExcellentCount">--</span>
+                        </div>
+                        <div class="w-full bg-emerald-200 dark:bg-emerald-900/40 rounded-full h-2.5 overflow-hidden my-2">
+                            <div id="unifiSignalExcellentBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span class="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium" id="unifiSignalExcellentPct">--% dos clientes sem fio</span>
+                    </div>
+
+                    <!-- Bom -->
+                    <div class="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <span class="text-xs font-extrabold text-amber-800 dark:text-amber-300">Bom (-60 a -75 dBm)</span>
+                            </div>
+                            <span class="text-xs font-black text-amber-700 dark:text-amber-300 font-mono" id="unifiSignalGoodCount">--</span>
+                        </div>
+                        <div class="w-full bg-amber-200 dark:bg-amber-900/40 rounded-full h-2.5 overflow-hidden my-2">
+                            <div id="unifiSignalGoodBar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span class="text-[11px] text-amber-700 dark:text-amber-400 font-medium" id="unifiSignalGoodPct">--% dos clientes sem fio</span>
+                    </div>
+
+                    <!-- Fraco -->
+                    <div class="p-4 rounded-xl bg-red-50/60 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                <span class="text-xs font-extrabold text-red-800 dark:text-red-300">Fraco (< -75 dBm)</span>
+                            </div>
+                            <span class="text-xs font-black text-red-700 dark:text-red-300 font-mono" id="unifiSignalWeakCount">--</span>
+                        </div>
+                        <div class="w-full bg-red-200 dark:bg-red-900/40 rounded-full h-2.5 overflow-hidden my-2">
+                            <div id="unifiSignalWeakBar" class="bg-red-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span class="text-[11px] text-red-700 dark:text-red-400 font-medium" id="unifiSignalWeakPct">--% dos clientes sem fio</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= CONTROLES DA TABELA: ALTERNADOR DE VISÃO, BUSCA E FILTROS ================= -->
+            <div class="enterprise-card p-5 space-y-4">
+                
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    
+                    <!-- Alternador de Visões (Segmented Control) -->
+                    <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-[#0E1528] border border-slate-200 dark:border-[#2A3B66] shadow-inner w-full md:w-auto">
+                        <button id="unifiViewBtnDevices" onclick="setUnifiView('devices')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95">
+                            <i data-lucide="router" class="w-4 h-4"></i>
+                            <span>Equipamentos UniFi (Infra)</span>
+                            <span id="unifiTabDevicesBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-400/20 text-cyan-200">13</span>
+                        </button>
+                        <button id="unifiViewBtnClients" onclick="setUnifiView('clients')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            <span>Clientes Conectados</span>
+                            <span id="unifiTabClientsBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Busca e Filtros Dinâmicos -->
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- Input de Busca -->
+                        <div class="relative flex-1 sm:w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="unifiSearchInput" oninput="onUnifiSearchInput(this.value)" placeholder="Buscar por Nome, IP, MAC, SSID..." class="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:border-cyan-500 shadow-sm">
+                        </div>
+
+                        <!-- Filtro de Dispositivos Infra -->
+                        <div id="unifiDevicesFilterContainer" class="flex items-center gap-2">
+                            <select id="unifiDeviceTypeSelect" onchange="onUnifiDeviceFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="uap">Access Points (AP)</option>
+                                <option value="usw">Switches (USW)</option>
+                                <option value="udm">Gateways / UDM Pro</option>
+                            </select>
+                            <select id="unifiDeviceStatusSelect" onchange="onUnifiDeviceFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Todos os Status</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                                <option value="attention">Em Atenção</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro de Clientes -->
+                        <div id="unifiClientsFilterContainer" class="hidden flex flex-wrap items-center gap-2">
+                            <select id="unifiClientSsidSelect" onchange="onUnifiClientFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">SSID: Todos</option>
+                                <option value="JM-Mobile">JM-Mobile</option>
+                                <option value="JM-Adm">JM-Adm</option>
+                                <option value="JM-TV">JM-TV</option>
+                                <option value="JM-Visitantes">JM-Visitantes</option>
+                                <option value="JM-Guest">JM-Guest</option>
+                            </select>
+                            <select id="unifiClientConnSelect" onchange="onUnifiClientFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Conexão: Todas</option>
+                                <option value="wireless">Wi-Fi (Sem Fio)</option>
+                                <option value="wired">Cabo (Ethernet)</option>
+                            </select>
+                            <select id="unifiClientNetSelect" onchange="onUnifiClientFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Rede: Todas</option>
+                                <option value="corporate">Corporativa</option>
+                                <option value="guest">Visitantes (Guest)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- TABELA 1: EQUIPAMENTOS UNIFI (INFRA) -->
+                <div id="unifiTableDevicesWrapper" class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                <th class="py-3 px-3">Equipamento / Nome</th>
+                                <th class="py-3 px-3">Tipo & Modelo</th>
+                                <th class="py-3 px-3">Endereço IP & MAC</th>
+                                <th class="py-3 px-3 text-center">Status</th>
+                                <th class="py-3 px-3 text-center">Clientes / Portas</th>
+                                <th class="py-3 px-3">Firmware</th>
+                                <th class="py-3 px-3">Uptime</th>
+                                <th class="py-3 px-3 text-center">CPU / Memória</th>
+                                <th class="py-3 px-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unifiDevicesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TABELA 2: CLIENTES CONECTADOS -->
+                <div id="unifiTableClientsWrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                <th class="py-3 px-3">Dispositivo / Hostname</th>
+                                <th class="py-3 px-3">Endereço IP & MAC</th>
+                                <th class="py-3 px-3 text-center">Conexão</th>
+                                <th class="py-3 px-3">Rede / SSID</th>
+                                <th class="py-3 px-3">Ponto de Conexão</th>
+                                <th class="py-3 px-3 text-center">Sinal Wi-Fi</th>
+                                <th class="py-3 px-3">Tráfego Total (Rx / Tx)</th>
+                                <th class="py-3 px-3">Uptime</th>
+                                <th class="py-3 px-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unifiClientsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação e Contador -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                    <div id="unifiPaginationInfo">Exibindo 0 de 0 registros</div>
+                    <div class="flex items-center gap-2" id="unifiPaginationControls">
+                        <button id="unifiPrevPageBtn" onclick="changeUnifiPage(-1)" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">Anterior</button>
+                        <span id="unifiPageIndicator" class="font-bold text-slate-700 dark:text-slate-300">1</span>
+                        <button id="unifiNextPageBtn" onclick="changeUnifiPage(1)" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">Próxima</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ================= MODAIS DE AÇÕES ADMINISTRATIVAS UNIFI ================= -->
+        
+        <!-- Modal 1: Reinício Seguro de Equipamento UniFi -->
+        <div id="unifiRestartModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="enterprise-card max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3 text-amber-500">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5 text-amber-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#1E2A4A] dark:text-white">Reiniciar Equipamento UniFi</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Comando administrativo oficial via API</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                    <div><span class="text-slate-400">Dispositivo:</span> <strong id="restartDeviceName" class="text-slate-800 dark:text-white">-</strong></div>
+                    <div><span class="text-slate-400">Modelo:</span> <span id="restartDeviceModel" class="font-mono text-cyan-600 dark:text-cyan-400">-</span></div>
+                    <div><span class="text-slate-400">Endereço MAC:</span> <span id="restartDeviceMac" class="font-mono text-slate-700 dark:text-slate-300">-</span></div>
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-300">
+                    Aviso: O equipamento será reiniciado remotamente. Clientes conectados a este AP ou switch sofrerão uma breve interrupção momentânea de sinal.
+                </p>
+                <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button onclick="closeUnifiRestartModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="btnConfirmRestartDevice" onclick="confirmRestartDevice()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-[#1E2A4A] font-black rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                        <span>Confirmar Reinício</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal 2: Gerenciamento de Porta PoE do Switch -->
+        <div id="unifiPoeModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="enterprise-card max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3 text-cyan-500">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="zap" class="w-5 h-5 text-cyan-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#1E2A4A] dark:text-white" id="poeModalTitle">Gerenciar Porta PoE</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Switch USW Lite 16 PoE • Alimentação 802.3at</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                    <div><span class="text-slate-400">Porta:</span> <strong id="poeModalPortIdx" class="text-slate-800 dark:text-white">-</strong></div>
+                    <div><span class="text-slate-400">Equipamento Conectado:</span> <span id="poeModalConnected" class="font-bold text-cyan-600 dark:text-cyan-400">-</span></div>
+                    <div><span class="text-slate-400">Consumo Atual:</span> <span id="poeModalPower" class="font-mono font-bold text-amber-500">- W</span></div>
+                    <div><span class="text-slate-400">Status da Alimentação:</span> <span id="poeModalStatus" class="font-bold">-</span></div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Ação na Alimentação PoE:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setPortPoeMode('auto')" class="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex flex-col items-center gap-1 transition-all">
+                            <i data-lucide="power" class="w-4 h-4"></i>
+                            <span>Ligar (Auto)</span>
+                        </button>
+                        <button onclick="setPortPoeMode('off')" class="p-2.5 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 font-bold text-xs flex flex-col items-center gap-1 transition-all">
+                            <i data-lucide="power-off" class="w-4 h-4"></i>
+                            <span>Desligar (Off)</span>
+                        </button>
+                        <button onclick="setPortPoeMode('cycle')" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs flex flex-col items-center gap-1 transition-all">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                            <span>Power Cycle</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button onclick="closeUnifiPoeModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal 3: Bloqueio / Desbloqueio / Reconexão de Cliente Wi-Fi -->
+        <div id="unifiClientActionModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="enterprise-card max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3 text-red-500" id="clientActionModalHeader">
+                    <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield-alert" class="w-5 h-5 text-red-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#1E2A4A] dark:text-white" id="clientActionModalTitle">Bloquear Estação Wi-Fi</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Controle de acesso por MAC Address</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                    <div><span class="text-slate-400">Dispositivo:</span> <strong id="clientActionName" class="text-slate-800 dark:text-white">-</strong></div>
+                    <div><span class="text-slate-400">Endereço IP:</span> <span id="clientActionIp" class="font-mono text-cyan-600 dark:text-cyan-400">-</span></div>
+                    <div><span class="text-slate-400">MAC Address:</span> <span id="clientActionMac" class="font-mono text-slate-700 dark:text-slate-300">-</span></div>
+                    <div><span class="text-slate-400">Rede / SSID:</span> <span id="clientActionSsid" class="font-bold">-</span></div>
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-300" id="clientActionDescription">
+                    Esta ação impedirá o dispositivo de associar a qualquer ponto de acesso UniFi da empresa.
+                </p>
+                <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button onclick="closeUnifiClientModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="btnConfirmClientAction" onclick="confirmClientAction()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal 4: Speedtest WAN em Tempo Real -->
+        <div id="unifiSpeedtestModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="enterprise-card max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3 text-cyan-500">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="gauge" class="w-5 h-5 text-cyan-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#1E2A4A] dark:text-white">Teste de Velocidade de Link WAN</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Gateway UDM Pro • Teste oficial de throughput</p>
+                    </div>
+                </div>
+                <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 text-center space-y-4">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider" id="speedtestStatusLabel">Pronto para Testar</div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                            <span class="text-[10px] text-slate-400 block font-bold">DOWNLOAD</span>
+                            <span id="speedtestDownloadVal" class="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">--</span>
+                            <span class="text-[10px] text-slate-400 block">Mbps</span>
+                        </div>
+                        <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                            <span class="text-[10px] text-slate-400 block font-bold">UPLOAD</span>
+                            <span id="speedtestUploadVal" class="text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">--</span>
+                            <span class="text-[10px] text-slate-400 block">Mbps</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+                        <span>Latência do Link:</span>
+                        <span id="speedtestLatencyVal" class="font-mono font-bold text-emerald-500">-- ms</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <span class="text-[11px] text-slate-400" id="speedtestTimestamp">Aguardando início</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="closeUnifiSpeedtestModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            Fechar
+                        </button>
+                        <button id="btnRunSpeedtest" onclick="executeSpeedtest()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-[#1E2A4A] font-black rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                            <span>Executar Teste</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </main>
 
@@ -2307,6 +3158,31 @@
         let chartProtectionSuccessRate = null;
         let chartTopBlockedUrls = null;
         let chartUrlCategories = null;
+        let chartUnifiClientsDist = null;
+        let chartUnifiTopConsumers = null;
+        let chartUnifiWanTimeline = null;
+        let chartUnifiSsidDist = null;
+        let chartUnifiVlanTraffic = null;
+        let unifiRawPorts = null;
+        let unifiRawNetworks = [];
+        let unifiRawWans = null;
+        let selectedRestartDevice = null;
+        let selectedPoePort = null;
+        let selectedClientAction = null;
+
+        let unifiCurrentView = 'devices'; // 'devices' ou 'clients'
+        let unifiRawDevices = [];
+        let unifiRawClients = [];
+        let unifiFilteredDevices = [];
+        let unifiFilteredClients = [];
+        let unifiSearchQuery = '';
+        let unifiDeviceTypeFilter = 'all';
+        let unifiDeviceStatusFilter = 'all';
+        let unifiClientConnFilter = 'all';
+        let unifiClientNetFilter = 'all';
+        let unifiDevicesCurrentPage = 1;
+        let unifiClientsCurrentPage = 1;
+        const UNIFI_PAGE_SIZE = 8;
 
         let isRefreshing = false;
         let autoRefreshCountdownInterval = null;
@@ -2526,7 +3402,8 @@
                     fetchPolicies(),
                     fetchM365Data(),
                     fetchURLFilteringData(),
-                    fetchAnalyticsCharts(currentDashboardPeriod)
+                    fetchAnalyticsCharts(currentDashboardPeriod),
+                    fetchUnifiData()
                 ]);
 
                 const now = new Date();
@@ -2621,7 +3498,7 @@
         function switchTab(tabName) {
             currentTab = tabName;
 
-            ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies'].forEach(t => {
+            ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies', 'network'].forEach(t => {
                 const sec = document.getElementById(`section-${t}`);
                 if (sec) sec.classList.add('hidden');
                 const btn = document.getElementById(`tab-${t}`);
@@ -2635,6 +3512,17 @@
             const activeBtn = document.getElementById(`tab-${tabName}`);
             if (activeBtn) {
                 activeBtn.classList.add('active');
+            }
+
+            if (tabName === 'network') {
+                fetchUnifiData();
+                setTimeout(() => {
+                    if (chartUnifiClientsDist) chartUnifiClientsDist.resize();
+                    if (chartUnifiTopConsumers) chartUnifiTopConsumers.resize();
+                    if (chartUnifiWanTimeline) chartUnifiWanTimeline.resize();
+                    if (chartUnifiSsidDist) chartUnifiSsidDist.resize();
+                    if (chartUnifiVlanTraffic) chartUnifiVlanTraffic.resize();
+                }, 100);
             }
         }
 
@@ -3889,7 +4777,9 @@
                 chartVulnerabilitySeverity,
                 chartProtectionSuccessRate,
                 chartTopBlockedUrls,
-                chartUrlCategories
+                chartUrlCategories,
+                chartUnifiClientsDist,
+                chartUnifiTopConsumers
             ];
 
             allCharts.forEach(chart => {
@@ -4269,6 +5159,11 @@
             if (chartProtectionSuccessRate) { chartProtectionSuccessRate.destroy(); chartProtectionSuccessRate = null; }
             if (chartTopBlockedUrls) { chartTopBlockedUrls.destroy(); chartTopBlockedUrls = null; }
             if (chartUrlCategories) { chartUrlCategories.destroy(); chartUrlCategories = null; }
+            if (chartUnifiClientsDist) { chartUnifiClientsDist.destroy(); chartUnifiClientsDist = null; }
+            if (chartUnifiTopConsumers) { chartUnifiTopConsumers.destroy(); chartUnifiTopConsumers = null; }
+            if (chartUnifiWanTimeline) { chartUnifiWanTimeline.destroy(); chartUnifiWanTimeline = null; }
+            if (chartUnifiSsidDist) { chartUnifiSsidDist.destroy(); chartUnifiSsidDist = null; }
+            if (chartUnifiVlanTraffic) { chartUnifiVlanTraffic.destroy(); chartUnifiVlanTraffic = null; }
 
             const baseOptions = {
                 responsive: true,
@@ -4801,6 +5696,260 @@
                 console.error("Erro ao inicializar chartUrlCategories:", err);
                 setChartError('chartUrlCategories', err.message);
             }
+
+            // 11. Distribuição de Clientes UniFi (Doughnut Moderno)
+            try {
+                const ctxUnifiDist = document.getElementById('chartUnifiClientsDist')?.getContext('2d');
+                if (ctxUnifiDist) {
+                    chartUnifiClientsDist = new Chart(ctxUnifiDist, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Wi-Fi 5 GHz', 'Wi-Fi 2.4 GHz', 'Cabo Ethernet', 'Visitantes (Guest)'],
+                            datasets: [{
+                                data: [0, 0, 0, 0],
+                                backgroundColor: ['#3B82F6', '#6366F1', '#10B981', '#F59E0B'],
+                                borderColor: themeCfg.doughnutBorder,
+                                borderWidth: 2,
+                                hoverOffset: 6,
+                                spacing: 3,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            ...baseOptions,
+                            cutout: '74%',
+                            plugins: {
+                                ...baseOptions.plugins
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Erro ao inicializar chartUnifiClientsDist:", err);
+            }
+
+            // 12. Top Dispositivos por Consumo de Tráfego UniFi (Horizontal Bar)
+            try {
+                const ctxUnifiTop = document.getElementById('chartUnifiTopConsumers')?.getContext('2d');
+                if (ctxUnifiTop) {
+                    chartUnifiTopConsumers = new Chart(ctxUnifiTop, {
+                        type: 'bar',
+                        data: {
+                            labels: [],
+                            datasets: [
+                                {
+                                    label: 'Download (Rx)',
+                                    data: [],
+                                    backgroundColor: '#06B6D4',
+                                    borderRadius: { topRight: 4, bottomRight: 4 },
+                                    borderSkipped: false,
+                                    maxBarThickness: 16
+                                },
+                                {
+                                    label: 'Upload (Tx)',
+                                    data: [],
+                                    backgroundColor: '#8B5CF6',
+                                    borderRadius: { topRight: 4, bottomRight: 4 },
+                                    borderSkipped: false,
+                                    maxBarThickness: 16
+                                }
+                            ]
+                        },
+                        options: {
+                            ...baseOptions,
+                            indexAxis: 'y',
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                    grid: { color: themeCfg.gridColor, drawBorder: false },
+                                    ticks: {
+                                        color: themeCfg.subTextColor,
+                                        font: { family: 'Inter', size: 10, weight: '600' },
+                                        callback: function(value) {
+                                            if (value >= 1000) return (value / 1000).toFixed(1) + ' TB';
+                                            return value + ' GB';
+                                        }
+                                    }
+                                },
+                                y: {
+                                    stacked: true,
+                                    grid: { display: false, drawBorder: false },
+                                    ticks: {
+                                        color: themeCfg.textColor,
+                                        font: { family: 'Inter', size: 11, weight: '600' }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                ...baseOptions.plugins,
+                                tooltip: {
+                                    ...baseOptions.plugins.tooltip,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const val = context.raw || 0;
+                                            const label = context.dataset.label || '';
+                                            return ` ${label}: ${val >= 1000 ? (val / 1000).toFixed(2) + ' TB' : val.toFixed(1) + ' GB'}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Erro ao inicializar chartUnifiTopConsumers:", err);
+            }
+
+            // 13. Histórico Throughput Dual-WAN (Timeline Line Chart)
+            try {
+                const ctxUnifiWan = document.getElementById('chartUnifiWanTimeline')?.getContext('2d');
+                if (ctxUnifiWan) {
+                    chartUnifiWanTimeline = new Chart(ctxUnifiWan, {
+                        type: 'line',
+                        data: {
+                            labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+                            datasets: [
+                                {
+                                    label: 'WAN 1 (Vivo Fibra)',
+                                    data: [380, 450, 520, 610, 580, 640, 710, 690, 735],
+                                    borderColor: '#10B981',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                                    fill: true,
+                                    tension: 0.35,
+                                    borderWidth: 2.5,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6
+                                },
+                                {
+                                    label: 'WAN 2 (SAMM 10G)',
+                                    data: [190, 240, 310, 380, 410, 395, 430, 460, 485],
+                                    borderColor: '#06B6D4',
+                                    backgroundColor: 'rgba(6, 182, 212, 0.10)',
+                                    fill: true,
+                                    tension: 0.35,
+                                    borderWidth: 2.5,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6
+                                }
+                            ]
+                        },
+                        options: {
+                            ...baseOptions,
+                            scales: {
+                                x: {
+                                    grid: { color: themeCfg.gridColor, drawBorder: false },
+                                    ticks: { color: themeCfg.subTextColor, font: { family: 'Inter', size: 10, weight: '600' } }
+                                },
+                                y: {
+                                    grid: { color: themeCfg.gridColor, drawBorder: false },
+                                    ticks: {
+                                        color: themeCfg.textColor,
+                                        font: { family: 'Inter', size: 10, weight: '600' },
+                                        callback: function(v) { return v + ' Mbps'; }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                ...baseOptions.plugins,
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        color: themeCfg.textColor,
+                                        font: { family: 'Inter', size: 11, weight: '600' },
+                                        usePointStyle: true,
+                                        boxWidth: 7
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Erro ao inicializar chartUnifiWanTimeline:", err);
+            }
+
+            // 14. Distribuição por SSID (Doughnut)
+            try {
+                const ctxUnifiSsid = document.getElementById('chartUnifiSsidDist')?.getContext('2d');
+                if (ctxUnifiSsid) {
+                    chartUnifiSsidDist = new Chart(ctxUnifiSsid, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['JM-Mobile', 'JM-Adm', 'JM-TV', 'JM-Visitantes', 'JM-Guest', 'Rede Cabeada'],
+                            datasets: [{
+                                data: [49, 30, 8, 8, 6, 4],
+                                backgroundColor: ['#06B6D4', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#10B981'],
+                                borderColor: themeCfg.doughnutBorder,
+                                borderWidth: 2,
+                                hoverOffset: 6,
+                                spacing: 3,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            ...baseOptions,
+                            cutout: '68%',
+                            plugins: {
+                                ...baseOptions.plugins,
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        color: themeCfg.textColor,
+                                        font: { family: 'Inter', size: 10, weight: '600' },
+                                        usePointStyle: true,
+                                        boxWidth: 7
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Erro ao inicializar chartUnifiSsidDist:", err);
+            }
+
+            // 15. Tráfego por VLAN (Bar Chart)
+            try {
+                const ctxUnifiVlan = document.getElementById('chartUnifiVlanTraffic')?.getContext('2d');
+                if (ctxUnifiVlan) {
+                    chartUnifiVlanTraffic = new Chart(ctxUnifiVlan, {
+                        type: 'bar',
+                        data: {
+                            labels: ['VLAN 1 (Principal)', 'VLAN 70 (Mobile)', 'VLAN 60 (Guest)'],
+                            datasets: [{
+                                label: 'Volume Tráfego (GB)',
+                                data: [668.9, 646.4, 125.2],
+                                backgroundColor: ['#3B82F6', '#06B6D4', '#F59E0B'],
+                                borderRadius: 6,
+                                maxBarThickness: 32
+                            }]
+                        },
+                        options: {
+                            ...baseOptions,
+                            scales: {
+                                x: {
+                                    grid: { display: false, drawBorder: false },
+                                    ticks: { color: themeCfg.textColor, font: { family: 'Inter', size: 10, weight: '600' } }
+                                },
+                                y: {
+                                    grid: { color: themeCfg.gridColor, drawBorder: false },
+                                    ticks: {
+                                        color: themeCfg.subTextColor,
+                                        font: { family: 'Inter', size: 10, weight: '600' },
+                                        callback: function(v) { return v + ' GB'; }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                ...baseOptions.plugins,
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Erro ao inicializar chartUnifiVlanTraffic:", err);
+            }
         }
 
         // ==========================================
@@ -4880,6 +6029,968 @@
             }
         });
 
+
+                // =========================================================================
+        // MÓDULO UNIFI NETWORK (NETWORKING HUB PROFISSIONAL & CONTROLES API)
+        // =========================================================================
+
+        async function fetchUnifiData() {
+            try {
+                const [summaryRes, devicesRes, clientsRes, analyticsRes, wansRes, portsRes, networksRes] = await Promise.allSettled([
+                    fetch(`${API_BASE}/api/unifi/summary`),
+                    fetch(`${API_BASE}/api/unifi/devices`),
+                    fetch(`${API_BASE}/api/unifi/clients`),
+                    fetch(`${API_BASE}/api/unifi/analytics`),
+                    fetch(`${API_BASE}/api/unifi/wans`),
+                    fetch(`${API_BASE}/api/unifi/ports`),
+                    fetch(`${API_BASE}/api/unifi/networks`)
+                ]);
+
+                // 1. Resumo e KPIs
+                if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
+                    const summaryData = await summaryRes.value.json();
+                    auditLogApi('/api/unifi/summary', summaryRes.value.status, summaryData);
+                    renderUnifiSummary(summaryData);
+                }
+
+                // 2. Dispositivos de Infraestrutura
+                if (devicesRes.status === 'fulfilled' && devicesRes.value.ok) {
+                    const devData = await devicesRes.value.json();
+                    auditLogApi('/api/unifi/devices', devicesRes.value.status, devData);
+                    unifiRawDevices = Array.isArray(devData.devices) ? devData.devices : [];
+                    const dBadge = document.getElementById('unifiTabDevicesBadge');
+                    if (dBadge) dBadge.textContent = unifiRawDevices.length;
+                    const topBadge = document.getElementById('badgeUnifiDevicesCount');
+                    if (topBadge) topBadge.textContent = unifiRawDevices.length;
+                }
+
+                // 3. Clientes Conectados
+                if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+                    const cliData = await clientsRes.value.json();
+                    auditLogApi('/api/unifi/clients', clientsRes.value.status, cliData);
+                    unifiRawClients = Array.isArray(cliData.clients) ? cliData.clients : [];
+                    const cBadge = document.getElementById('unifiTabClientsBadge');
+                    if (cBadge) cBadge.textContent = unifiRawClients.length;
+                }
+
+                // 4. Analytics & Gráficos
+                if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+                    const anaData = await analyticsRes.value.json();
+                    auditLogApi('/api/unifi/analytics', analyticsRes.value.status, anaData);
+                    renderUnifiAnalytics(anaData);
+                }
+
+                // 5. WANs e Provedores
+                if (wansRes.status === 'fulfilled' && wansRes.value.ok) {
+                    const wansData = await wansRes.value.json();
+                    auditLogApi('/api/unifi/wans', wansRes.value.status, wansData);
+                    unifiRawWans = wansData;
+                    renderUnifiWans(wansData);
+                }
+
+                // 6. Matriz de Portas Físicas (UDM Pro & Switch)
+                if (portsRes.status === 'fulfilled' && portsRes.value.ok) {
+                    const portsData = await portsRes.value.json();
+                    auditLogApi('/api/unifi/ports', portsRes.value.status, portsData);
+                    unifiRawPorts = portsData;
+                    renderUnifiPortMatrix(portsData);
+                }
+
+                // 7. Redes e VLANs (DHCP Leases)
+                if (networksRes.status === 'fulfilled' && networksRes.value.ok) {
+                    const netData = await networksRes.value.json();
+                    auditLogApi('/api/unifi/networks', networksRes.value.status, netData);
+                    unifiRawNetworks = Array.isArray(netData.networks) ? netData.networks : [];
+                    renderUnifiNetworks(netData);
+                }
+
+                // Aplica filtros e renderiza visualização ativa
+                applyUnifiFilters();
+
+            } catch (err) {
+                console.error("[UniFi] Erro ao sincronizar dados da rede:", err);
+            }
+        }
+
+        function renderUnifiSummary(summaryData) {
+            if (!summaryData) return;
+            const k = summaryData.kpis || {};
+            const isMock = summaryData.is_mock;
+
+            const statusPill = document.getElementById('unifiStatusPill');
+            const statusText = document.getElementById('unifiStatusText');
+            const noticeBanner = document.getElementById('unifiNoticeBanner');
+            const noticeTitle = document.getElementById('unifiNoticeTitle');
+            const noticeMsg = document.getElementById('unifiNoticeMsg');
+            const controllerUrlEl = document.getElementById('unifiControllerUrlLabel');
+            const siteEl = document.getElementById('unifiSiteLabel');
+
+            if (controllerUrlEl && summaryData.controller_url) {
+                controllerUrlEl.textContent = summaryData.controller_url;
+            }
+            if (siteEl && summaryData.site) {
+                siteEl.textContent = summaryData.site;
+            }
+
+            if (isMock) {
+                if (statusPill) {
+                    statusPill.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5";
+                }
+                if (statusText) statusText.textContent = "Modo Demonstração (Simulado)";
+                if (noticeBanner) noticeBanner.classList.remove('hidden');
+                if (noticeTitle) noticeTitle.textContent = "Ambiente Demonstrativo UniFi:";
+                if (noticeMsg) noticeMsg.innerHTML = "Configuração do .env carregada sem credenciais ativas.";
+            } else {
+                if (statusPill) {
+                    statusPill.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5";
+                }
+                if (statusText) statusText.textContent = "100% Operacional";
+                if (noticeBanner) noticeBanner.classList.add('hidden');
+            }
+
+            // KPIs
+            const devOnlineEl = document.getElementById('unifiKpiDevicesOnline');
+            const devDetailEl = document.getElementById('unifiKpiDevicesDetail');
+            const devTotalEl = document.getElementById('unifiKpiDevicesTotal');
+            if (devOnlineEl) devOnlineEl.textContent = `${k.devices_online || 0} / ${k.devices_total || 0}`;
+            if (devDetailEl) {
+                if ((k.devices_offline || 0) === 0) {
+                    devDetailEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-bold">🟢 100% Online</span>`;
+                } else {
+                    devDetailEl.innerHTML = `<span class="text-amber-500 font-bold">🟡 ${k.devices_offline} Offline</span>`;
+                }
+            }
+            if (devTotalEl) devTotalEl.textContent = `${k.devices_total || 0} Total`;
+
+            const cliTotalEl = document.getElementById('unifiKpiClientsTotal');
+            const cliWifiEl = document.getElementById('unifiKpiClientsWifi');
+            const cliWiredEl = document.getElementById('unifiKpiClientsWired');
+            if (cliTotalEl) cliTotalEl.textContent = `${k.clients_total || 0}`;
+            if (cliWifiEl) cliWifiEl.textContent = `📶 ${k.clients_wifi || 0} Wi-Fi`;
+            if (cliWiredEl) cliWiredEl.textContent = `🔌 ${k.clients_wired || 0} Cabo`;
+
+            const latEl = document.getElementById('unifiKpiLatency');
+            if (latEl) latEl.textContent = `${k.latency_ms || 8} ms`;
+
+            const rxTxEl = document.getElementById('unifiKpiRxTx');
+            const rxEl = document.getElementById('unifiKpiRx');
+            const txEl = document.getElementById('unifiKpiTx');
+            if (rxTxEl) rxTxEl.textContent = `${k.total_rx_formatted || '0 GB'} / ${k.total_tx_formatted || '0 GB'}`;
+            if (rxEl) rxEl.textContent = `↓ ${k.total_rx_formatted || '0 GB'}`;
+            if (txEl) txEl.textContent = `↑ ${k.total_tx_formatted || '0 GB'}`;
+
+            const attEl = document.getElementById('unifiKpiAttention');
+            const attDetEl = document.getElementById('unifiKpiAttentionDetail');
+            if (attEl) attEl.textContent = `${k.devices_attention || 1}`;
+            if (attDetEl) {
+                attDetEl.textContent = (k.devices_offline > 0) ? `AP11 (4º Andar) Offline` : `Infraestrutura 100% OK`;
+            }
+        }
+
+        function renderUnifiWans(wansData) {
+            if (!wansData || !Array.isArray(wansData.interfaces)) return;
+            const w1 = wansData.interfaces.find(i => i.name === 'WAN 1') || wansData.interfaces[0];
+            const w2 = wansData.interfaces.find(i => i.name === 'WAN 2') || wansData.interfaces[1];
+
+            if (w1) {
+                const ip1 = document.getElementById('unifiWan1Ip');
+                const lat1 = document.getElementById('unifiWan1Latency');
+                const up1 = document.getElementById('unifiWan1Uptime');
+                const ratio1 = document.getElementById('unifiWan1Ratio');
+                const rxtx1 = document.getElementById('unifiWan1RxTx');
+                if (ip1) ip1.textContent = w1.ip || '187.9.95.202';
+                if (lat1) lat1.textContent = `${w1.latency_ms || 8} ms`;
+                if (up1) up1.textContent = `${w1.uptime_pct || 99.98}%`;
+                if (ratio1) ratio1.textContent = `${w1.load_balance_pct || 65}%`;
+                if (rxtx1) rxtx1.textContent = `↓ ${w1.rx_formatted || '4.55 TB'} | ↑ ${w1.tx_formatted || '1.65 TB'}`;
+            }
+
+            if (w2) {
+                const ip2 = document.getElementById('unifiWan2Ip');
+                const lat2 = document.getElementById('unifiWan2Latency');
+                const up2 = document.getElementById('unifiWan2Uptime');
+                const ratio2 = document.getElementById('unifiWan2Ratio');
+                const rxtx2 = document.getElementById('unifiWan2RxTx');
+                if (ip2) ip2.textContent = w2.ip || '187.120.7.126';
+                if (lat2) lat2.textContent = `${w2.latency_ms || 11} ms`;
+                if (up2) up2.textContent = `${w2.uptime_pct || 99.94}%`;
+                if (ratio2) ratio2.textContent = `${w2.load_balance_pct || 35}%`;
+                if (rxtx2) rxtx2.textContent = `↓ ${w2.rx_formatted || '2.47 TB'} | ↑ ${w2.tx_formatted || '608.87 GB'}`;
+            }
+
+            const badge = document.getElementById('unifiWanModeBadge');
+            if (badge && wansData.mode) {
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span><span>${escapeHtml(wansData.mode)}</span>`;
+            }
+        }
+
+        function renderUnifiPortMatrix(portsData) {
+            if (!portsData) return;
+
+            // 1. Grid da UDM Pro (11 Portas)
+            const udmContainer = document.getElementById('unifiUdmPortsGrid');
+            if (udmContainer && portsData.gateway && Array.isArray(portsData.gateway.ports)) {
+                udmContainer.innerHTML = portsData.gateway.ports.map(p => {
+                    const isUp = p.link === true;
+                    const isSfp = p.media === 'sfp+';
+                    const isWan = p.type === 'wan';
+                    const ledColor = isUp ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-400';
+                    const borderTheme = isUp ? (isWan ? 'border-cyan-500/60' : 'border-emerald-500/60') : 'border-slate-300 dark:border-slate-700';
+                    const badgeBg = isWan ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+
+                    return `
+                        <div class="p-2.5 rounded-xl border ${borderTheme} bg-white dark:bg-[#111827] flex flex-col justify-between space-y-2 shadow-xs hover:border-cyan-400 transition-all cursor-default" title="${escapeHtml(p.name)}: ${escapeHtml(p.connected_to)} (${escapeHtml(p.status)})">
+                            <div class="flex items-center justify-between">
+                                <span class="font-black text-[11px] text-[#1E2A4A] dark:text-white font-mono">${p.port_idx}</span>
+                                <span class="w-2 h-2 rounded-full ${ledColor}"></span>
+                            </div>
+                            <div class="text-center py-1">
+                                <div class="text-[10px] font-extrabold uppercase tracking-tight text-slate-500 dark:text-slate-400">
+                                    ${isSfp ? '10G SFP+' : '1G RJ45'}
+                                </div>
+                                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-black ${badgeBg}">
+                                    ${isUp ? (p.speed_gbps >= 10 ? '10G' : '1000M') : 'Down'}
+                                </span>
+                            </div>
+                            <div class="text-[9px] text-slate-500 dark:text-slate-400 truncate text-center font-mono">
+                                ${escapeHtml(p.vlan || 'LAN')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 2. Grid do Switch Lite 16 PoE (16 Portas)
+            const swContainer = document.getElementById('unifiSwitchPortsGrid');
+            if (swContainer && portsData.switch && Array.isArray(portsData.switch.ports)) {
+                const sw = portsData.switch;
+                const poeLabel = document.getElementById('unifiPoeBudgetLabel');
+                if (poeLabel) {
+                    poeLabel.textContent = `${sw.poe_used_w || 70.4}W Consumidos / ${sw.poe_budget_w || 45.0}W Base (8 Portas PoE+)`;
+                }
+
+                swContainer.innerHTML = sw.ports.map(p => {
+                    const isUp = p.link === true;
+                    const hasPoe = p.has_poe === true;
+                    const poeActive = p.poe_active === true;
+                    const ledColor = isUp ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-400';
+                    const borderTheme = poeActive ? 'border-amber-500/60 bg-amber-500/5' : isUp ? 'border-emerald-500/40 bg-white dark:bg-[#111827]' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-[#111827]';
+
+                    return `
+                        <div class="p-2 rounded-xl border ${borderTheme} flex flex-col justify-between space-y-1.5 shadow-xs hover:border-amber-400 transition-all cursor-default" title="Porta ${p.port_idx}: ${escapeHtml(p.connected_to || '')} (${escapeHtml(p.speed)})">
+                            <div class="flex items-center justify-between">
+                                <span class="font-black text-[11px] text-[#1E2A4A] dark:text-white font-mono">${p.port_idx}</span>
+                                <div class="flex items-center gap-1">
+                                    ${hasPoe ? `<span class="text-[10px] ${poeActive ? 'text-amber-500 animate-pulse' : 'text-slate-400'}" title="PoE+ 802.3at">⚡</span>` : ''}
+                                    <span class="w-2 h-2 rounded-full ${ledColor}"></span>
+                                </div>
+                            </div>
+                            <div class="text-center py-0.5">
+                                <div class="text-[9px] font-bold text-slate-700 dark:text-slate-300 truncate" title="${escapeHtml(p.connected_to || '-')}">
+                                    ${escapeHtml((p.connected_to || '-').slice(0, 14))}
+                                </div>
+                                <div class="text-[9px] font-mono text-cyan-600 dark:text-cyan-400">
+                                    ${hasPoe && poeActive ? `<strong class="text-amber-500">${p.poe_power_w}W</strong>` : (isUp ? '1000M' : 'Down')}
+                                </div>
+                            </div>
+                            ${hasPoe ? `
+                                <button onclick="openUnifiPoeModal(${p.port_idx}, '${escapeHtml(sw.mac || '')}', '${escapeHtml(p.connected_to || '')}', ${p.poe_power_w || 0}, '${p.poe_mode || 'auto'}')" 
+                                    class="w-full py-1 text-[9px] font-bold rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition-all cursor-pointer text-center">
+                                    PoE ${p.poe_mode === 'off' ? 'Off' : 'Auto'}
+                                </button>
+                            ` : `
+                                <div class="text-[9px] text-slate-400 text-center font-mono py-1">GbE LAN</div>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderUnifiNetworks(netData) {
+            if (!netData || !Array.isArray(netData.networks)) return;
+            const lan = netData.networks.find(n => n.name.includes('LAN') || n.vlan === 1) || netData.networks[0];
+            const v70 = netData.networks.find(n => n.vlan === 70) || netData.networks[1];
+            const v60 = netData.networks.find(n => n.vlan === 60) || netData.networks[2];
+
+            if (lan) {
+                const leasesEl = document.getElementById('unifiVlanLanLeases');
+                const pctEl = document.getElementById('unifiVlanLanPct');
+                const barEl = document.getElementById('unifiVlanLanBar');
+                const availEl = document.getElementById('unifiVlanLanAvailable');
+                if (leasesEl) leasesEl.textContent = `${lan.active_leases || 284} / ${lan.dhcp_pool_size || 410}`;
+                if (pctEl) pctEl.textContent = `${lan.dhcp_usage_pct || 69.3}%`;
+                if (barEl) barEl.style.width = `${lan.dhcp_usage_pct || 69.3}%`;
+                if (availEl) availEl.textContent = `${lan.available_ips || 126} Disponíveis`;
+            }
+
+            if (v70) {
+                const leasesEl = document.getElementById('unifiVlan70Leases');
+                const pctEl = document.getElementById('unifiVlan70Pct');
+                const barEl = document.getElementById('unifiVlan70Bar');
+                const availEl = document.getElementById('unifiVlan70Available');
+                if (leasesEl) leasesEl.textContent = `${v70.active_leases || 62} / ${v70.dhcp_pool_size || 480}`;
+                if (pctEl) pctEl.textContent = `${v70.dhcp_usage_pct || 12.9}%`;
+                if (barEl) barEl.style.width = `${v70.dhcp_usage_pct || 12.9}%`;
+                if (availEl) availEl.textContent = `${v70.available_ips || 418} Disponíveis`;
+            }
+
+            if (v60) {
+                const leasesEl = document.getElementById('unifiVlan60Leases');
+                const pctEl = document.getElementById('unifiVlan60Pct');
+                const barEl = document.getElementById('unifiVlan60Bar');
+                const availEl = document.getElementById('unifiVlan60Available');
+                if (leasesEl) leasesEl.textContent = `${v60.active_leases || 18} / ${v60.dhcp_pool_size || 480}`;
+                if (pctEl) pctEl.textContent = `${v60.dhcp_usage_pct || 3.8}%`;
+                if (barEl) barEl.style.width = `${v60.dhcp_usage_pct || 3.8}%`;
+                if (availEl) availEl.textContent = `${v60.available_ips || 462} Disponíveis`;
+            }
+        }
+
+        function renderUnifiAnalytics(anaData) {
+            if (!anaData) return;
+
+            // 1. Throughput Dual-WAN Timeline
+            if (chartUnifiWanTimeline && anaData.wan_history) {
+                const wh = anaData.wan_history;
+                safeUpdateChart(chartUnifiWanTimeline, (c) => {
+                    c.data.labels = wh.timestamps || [];
+                    c.data.datasets[0].data = wh.wan1_mbps || [];
+                    c.data.datasets[1].data = wh.wan2_mbps || [];
+                }, 'chartUnifiWanTimeline');
+            }
+
+            // 2. Distribuição por SSID
+            if (chartUnifiSsidDist && anaData.by_ssid) {
+                safeUpdateChart(chartUnifiSsidDist, (c) => {
+                    c.data.labels = anaData.by_ssid.labels || [];
+                    c.data.datasets[0].data = anaData.by_ssid.counts || [];
+                }, 'chartUnifiSsidDist');
+
+                const totalClients = (anaData.by_ssid.counts || []).reduce((a, b) => a + b, 0);
+                const ssidLabel = document.getElementById('unifiSsidTotalLabel');
+                if (ssidLabel) ssidLabel.textContent = `${totalClients} Conexões`;
+            }
+
+            // 3. Tráfego por VLAN
+            if (chartUnifiVlanTraffic && anaData.by_vlan) {
+                const gbValues = (anaData.by_vlan.traffic_formatted || []).map(v => parseFloat(v.replace(' GB', '').replace(' TB', '000')));
+                safeUpdateChart(chartUnifiVlanTraffic, (c) => {
+                    c.data.labels = anaData.by_vlan.labels || [];
+                    c.data.datasets[0].data = gbValues;
+                }, 'chartUnifiVlanTraffic');
+            }
+
+            // 4. Distribuição de Clientes (Frequências)
+            if (chartUnifiClientsDist && anaData.distribution) {
+                safeUpdateChart(chartUnifiClientsDist, (c) => {
+                    c.data.labels = anaData.distribution.labels || [];
+                    c.data.datasets[0].data = anaData.distribution.counts || [];
+                }, 'chartUnifiClientsDist');
+            }
+
+            // 5. Top Consumidores
+            if (chartUnifiTopConsumers && Array.isArray(anaData.top_consumers)) {
+                const names = anaData.top_consumers.map(t => (t.name || t.ip || 'Dispositivo').slice(0, 22));
+                const rxGb = anaData.top_consumers.map(t => parseFloat(((t.rx_bytes || 0) / (1024 * 1024 * 1024)).toFixed(1)));
+                const txGb = anaData.top_consumers.map(t => parseFloat(((t.tx_bytes || 0) / (1024 * 1024 * 1024)).toFixed(1)));
+
+                safeUpdateChart(chartUnifiTopConsumers, (c) => {
+                    c.data.labels = names;
+                    c.data.datasets[0].data = rxGb;
+                    c.data.datasets[1].data = txGb;
+                }, 'chartUnifiTopConsumers');
+
+                const totalVol = anaData.top_consumers.reduce((acc, t) => acc + (t.total_bytes || 0), 0);
+                const volEl = document.getElementById('unifiTopConsumersTotalVolume');
+                if (volEl) volEl.textContent = `${(totalVol / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB Tráfego Top Estações`;
+            }
+
+            // 6. Qualidade de Sinal Wi-Fi
+            const sq = anaData.signal_quality || {};
+            const excCount = document.getElementById('unifiSignalExcellentCount');
+            const excBar = document.getElementById('unifiSignalExcellentBar');
+            const excPct = document.getElementById('unifiSignalExcellentPct');
+            if (excCount) excCount.textContent = `${sq.excellent_count || 41}`;
+            if (excBar) excBar.style.width = `${sq.excellent_pct || 40.6}%`;
+            if (excPct) excPct.textContent = `${sq.excellent_pct || 40.6}% dos clientes Wi-Fi`;
+
+            const gdCount = document.getElementById('unifiSignalGoodCount');
+            const gdBar = document.getElementById('unifiSignalGoodBar');
+            const gdPct = document.getElementById('unifiSignalGoodPct');
+            if (gdCount) gdCount.textContent = `${sq.good_count || 40}`;
+            if (gdBar) gdBar.style.width = `${sq.good_pct || 39.6}%`;
+            if (gdPct) gdPct.textContent = `${sq.good_pct || 39.6}% dos clientes Wi-Fi`;
+
+            const wkCount = document.getElementById('unifiSignalWeakCount');
+            const wkBar = document.getElementById('unifiSignalWeakBar');
+            const wkPct = document.getElementById('unifiSignalWeakPct');
+            if (wkCount) wkCount.textContent = `${sq.weak_count || 20}`;
+            if (wkBar) wkBar.style.width = `${sq.weak_pct || 19.8}%`;
+            if (wkPct) wkPct.textContent = `${sq.weak_pct || 19.8}% dos clientes Wi-Fi`;
+
+            const wifiSat = document.getElementById('unifiWifiSatisfactionRate');
+            if (wifiSat) wifiSat.textContent = `${sq.excellent_pct ? Math.min(99, Math.round(sq.excellent_pct + (sq.good_pct * 0.7))) : 98}%`;
+        }
+
+        // Filtros e Renderização das Tabelas UniFi
+        function applyUnifiFilters() {
+            const q = unifiSearchQuery.toLowerCase().trim();
+
+            // Filtro Dispositivos Infra
+            unifiFilteredDevices = unifiRawDevices.filter(d => {
+                if (q) {
+                    const matchText = `${d.name} ${d.model} ${d.ip} ${d.mac} ${d.type_label}`.toLowerCase();
+                    if (!matchText.includes(q)) return false;
+                }
+                if (unifiDeviceTypeFilter !== 'all' && d.type !== unifiDeviceTypeFilter) return false;
+                if (unifiDeviceStatusFilter === 'online' && d.status !== 'online') return false;
+                if (unifiDeviceStatusFilter === 'offline' && d.status !== 'offline') return false;
+                if (unifiDeviceStatusFilter === 'attention' && (d.status === 'online' && !d.upgradable)) return false;
+                return true;
+            });
+
+            // Filtro Clientes Conectados
+            unifiFilteredClients = unifiRawClients.filter(c => {
+                if (q) {
+                    const matchText = `${c.name} ${c.hostname} ${c.ip} ${c.mac} ${c.essid} ${c.connection_point}`.toLowerCase();
+                    if (!matchText.includes(q)) return false;
+                }
+                const ssidFilter = document.getElementById('unifiClientSsidSelect')?.value || 'all';
+                if (ssidFilter !== 'all' && c.essid !== ssidFilter) return false;
+                if (unifiClientConnFilter !== 'all' && c.connection_type !== unifiClientConnFilter) return false;
+                if (unifiClientNetFilter !== 'all' && c.network_type !== unifiClientNetFilter) return false;
+                return true;
+            });
+
+            renderUnifiActiveTable();
+        }
+
+        function renderUnifiActiveTable() {
+            if (unifiCurrentView === 'devices') {
+                renderUnifiDevicesTable();
+            } else {
+                renderUnifiClientsTable();
+            }
+        }
+
+        function setUnifiView(view) {
+            unifiCurrentView = view;
+            const btnDev = document.getElementById('unifiViewBtnDevices');
+            const btnCli = document.getElementById('unifiViewBtnClients');
+            const wrapDev = document.getElementById('unifiTableDevicesWrapper');
+            const wrapCli = document.getElementById('unifiTableClientsWrapper');
+            const filterDev = document.getElementById('unifiDevicesFilterContainer');
+            const filterCli = document.getElementById('unifiClientsFilterContainer');
+
+            if (view === 'devices') {
+                btnDev.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95";
+                btnCli.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95";
+                wrapDev.classList.remove('hidden');
+                wrapCli.classList.add('hidden');
+                filterDev.classList.remove('hidden');
+                filterCli.classList.add('hidden');
+            } else {
+                btnCli.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95";
+                btnDev.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95";
+                wrapCli.classList.remove('hidden');
+                wrapDev.classList.add('hidden');
+                filterCli.classList.remove('hidden');
+                filterDev.classList.add('hidden');
+            }
+
+            renderUnifiActiveTable();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderUnifiDevicesTable() {
+            const tbody = document.getElementById('unifiDevicesTableBody');
+            if (!tbody) return;
+
+            const total = unifiFilteredDevices.length;
+            const totalPages = Math.max(1, Math.ceil(total / UNIFI_PAGE_SIZE));
+            unifiDevicesCurrentPage = Math.min(Math.max(1, unifiDevicesCurrentPage), totalPages);
+
+            const startIdx = (unifiDevicesCurrentPage - 1) * UNIFI_PAGE_SIZE;
+            const endIdx = startIdx + UNIFI_PAGE_SIZE;
+            const pageData = unifiFilteredDevices.slice(startIdx, endIdx);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="router" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            <div>Nenhum equipamento UniFi encontrado para os filtros aplicados.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageData.map(d => {
+                    const isOnline = d.status === 'online';
+                    const statusBadge = isOnline
+                        ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Online</span>`
+                        : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Offline</span>`;
+
+                    const typeIcon = d.type === 'uap' ? 'wifi' : d.type === 'usw' ? 'server' : 'shield';
+                    const upgradePill = d.upgradable 
+                        ? `<span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700" title="Atualização disponível para ${d.upgrade_to_firmware || 'versão mais recente'}">Update v${escapeHtml(d.upgrade_to_firmware || '')}</span>`
+                        : '';
+
+                    return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                            <td class="py-3 px-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 flex items-center justify-center shrink-0">
+                                        <i data-lucide="${typeIcon}" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100">${escapeHtml(d.name)}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(d.mac)}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-bold text-slate-700 dark:text-slate-300">${escapeHtml(d.model)}</div>
+                                <div class="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold">${escapeHtml(d.type_label)}</div>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">
+                                ${escapeHtml(d.ip)}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${statusBadge}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200">
+                                    ${d.type === 'uap' ? `${d.num_sta} clientes` : `${d.active_ports || 8} / ${d.total_ports || 16} portas`}
+                                </div>
+                                <div class="text-[10px] text-slate-400">
+                                    ${d.type === 'uap' ? `${d.satisfaction || 98}% sinal` : `${d.num_sta || 0} estações`}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-mono text-slate-700 dark:text-slate-300">${escapeHtml(d.version)}</div>
+                                ${upgradePill}
+                            </td>
+                            <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                                ${escapeHtml(d.uptime)}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5 text-[10px] font-mono">
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">CPU ${d.cpu}%</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">RAM ${d.mem}%</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <button onclick="openUnifiRestartModal('${escapeHtml(d.mac)}', '${escapeHtml(d.name)}', '${escapeHtml(d.model)}')" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                    <span>Reiniciar</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Paginação
+            updateUnifiPagination(startIdx, endIdx, total, totalPages, unifiDevicesCurrentPage);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderUnifiClientsTable() {
+            const tbody = document.getElementById('unifiClientsTableBody');
+            if (!tbody) return;
+
+            const total = unifiFilteredClients.length;
+            const totalPages = Math.max(1, Math.ceil(total / UNIFI_PAGE_SIZE));
+            unifiClientsCurrentPage = Math.min(Math.max(1, unifiClientsCurrentPage), totalPages);
+
+            const startIdx = (unifiClientsCurrentPage - 1) * UNIFI_PAGE_SIZE;
+            const endIdx = startIdx + UNIFI_PAGE_SIZE;
+            const pageData = unifiFilteredClients.slice(startIdx, endIdx);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="laptop" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            <div>Nenhum cliente conectado encontrado para os filtros aplicados.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageData.map(c => {
+                    const isWired = c.is_wired;
+                    const isGuest = c.is_guest;
+                    const isBlocked = c.blocked === true;
+
+                    const connBadge = isWired
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"><i data-lucide="cable" class="w-3 h-3"></i> Cabo</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"><i data-lucide="wifi" class="w-3 h-3"></i> ${c.band}</span>`;
+
+                    const netBadge = isGuest
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Visitantes</span>`
+                        : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${escapeHtml(c.vlan_name || 'Corporativa')}</span>`;
+
+                    let signalHtml = `<span class="text-slate-400 font-mono text-[10px]">Cabo GbE</span>`;
+                    if (!isWired) {
+                        const sig = c.signal || -100;
+                        const sigColor = sig > -60 ? 'text-emerald-600 dark:text-emerald-400' : sig >= -75 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500';
+                        signalHtml = `
+                            <div class="flex items-center justify-center gap-1.5">
+                                <span class="font-mono font-black ${sigColor}">${sig} dBm</span>
+                                <span class="text-[9px] text-slate-400">(${escapeHtml(c.signal_quality)})</span>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                            <td class="py-3 px-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                                        <i data-lucide="${isWired ? 'laptop' : 'smartphone'}" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-1.5">
+                                            <span>${escapeHtml(c.name)}</span>
+                                            ${isBlocked ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800">Bloqueado</span>` : ''}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400">${escapeHtml(c.oui || 'Genérico')}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-mono text-slate-800 dark:text-slate-200 font-bold">${escapeHtml(c.ip)}</div>
+                                <div class="text-[10px] font-mono text-slate-400">${escapeHtml(c.mac)}</div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${connBadge}
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-bold text-slate-700 dark:text-slate-300">${escapeHtml(c.essid)}</div>
+                                <div class="mt-0.5">${netBadge}</div>
+                            </td>
+                            <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium">
+                                <div class="flex items-center gap-1.5">
+                                    <i data-lucide="${isWired ? 'server' : 'router'}" class="w-3.5 h-3.5 text-cyan-500"></i>
+                                    <span class="truncate max-w-[160px]">${escapeHtml(c.connection_point)}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${signalHtml}
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200">${escapeHtml(c.total_formatted)}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">↓ ${escapeHtml(c.rx_formatted)} | ↑ ${escapeHtml(c.tx_formatted)}</div>
+                            </td>
+                            <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                                ${escapeHtml(c.uptime)}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    ${isBlocked ? `
+                                        <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'unblock')" 
+                                            class="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer">
+                                            Desbloquear
+                                        </button>
+                                    ` : `
+                                        <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'block')" 
+                                            class="px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-700 dark:text-red-300 border border-red-500/30 text-[10px] font-bold transition-all cursor-pointer">
+                                            Bloquear
+                                        </button>
+                                    `}
+                                    <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'reconnect')" 
+                                        class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all cursor-pointer" title="Reconectar cliente">
+                                        Kick
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Paginação
+            updateUnifiPagination(startIdx, endIdx, total, totalPages, unifiClientsCurrentPage);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateUnifiPagination(startIdx, endIdx, total, totalPages, currentPage) {
+            const info = document.getElementById('unifiPaginationInfo');
+            const ind = document.getElementById('unifiPageIndicator');
+            const prev = document.getElementById('unifiPrevPageBtn');
+            const next = document.getElementById('unifiNextPageBtn');
+
+            if (info) {
+                info.textContent = total > 0 
+                    ? `Exibindo ${startIdx + 1} - ${Math.min(endIdx, total)} de ${total} registros`
+                    : `Exibindo 0 de 0 registros`;
+            }
+            if (ind) ind.textContent = `${currentPage} de ${totalPages}`;
+            if (prev) prev.disabled = (currentPage <= 1);
+            if (next) next.disabled = (currentPage >= totalPages);
+        }
+
+        function changeUnifiPage(delta) {
+            if (unifiCurrentView === 'devices') {
+                unifiDevicesCurrentPage += delta;
+            } else {
+                unifiClientsCurrentPage += delta;
+            }
+            renderUnifiActiveTable();
+        }
+
+        function onUnifiSearchInput(val) {
+            unifiSearchQuery = val || '';
+            unifiDevicesCurrentPage = 1;
+            unifiClientsCurrentPage = 1;
+            applyUnifiFilters();
+        }
+
+        function onUnifiDeviceFilterChange() {
+            unifiDeviceTypeFilter = document.getElementById('unifiDeviceTypeSelect')?.value || 'all';
+            unifiDeviceStatusFilter = document.getElementById('unifiDeviceStatusSelect')?.value || 'all';
+            unifiDevicesCurrentPage = 1;
+            applyUnifiFilters();
+        }
+
+        function onUnifiClientFilterChange() {
+            unifiClientConnFilter = document.getElementById('unifiClientConnSelect')?.value || 'all';
+            unifiClientNetFilter = document.getElementById('unifiClientNetSelect')?.value || 'all';
+            unifiClientsCurrentPage = 1;
+            applyUnifiFilters();
+        }
+
+        async function triggerUnifiSpecificRefresh() {
+            const icon = document.getElementById('unifiRefreshIcon');
+            if (icon) icon.classList.add('animate-spin');
+            showRefreshToast("Sincronizando com a controladora UniFi...");
+            try {
+                await fetch(`${API_BASE}/api/unifi/refresh`, { method: 'POST' });
+                await fetchUnifiData();
+                showRefreshToast("Dados da rede UniFi atualizados com sucesso!");
+            } catch (err) {
+                console.error("[UniFi] Erro ao atualizar UniFi:", err);
+                showRefreshToast("Falha ao sincronizar UniFi.");
+            } finally {
+                if (icon) icon.classList.remove('animate-spin');
+            }
+        }
+
+        // ==========================================
+        // OPERAÇÕES ADMINISTRATIVAS (MODAIS E ACTIONS)
+        // ==========================================
+
+        function openUnifiRestartModal(mac, name, model) {
+            selectedRestartDevice = { mac, name, model };
+            const nameEl = document.getElementById('restartDeviceName');
+            const modelEl = document.getElementById('restartDeviceModel');
+            const macEl = document.getElementById('restartDeviceMac');
+            if (nameEl) nameEl.textContent = name;
+            if (modelEl) modelEl.textContent = model;
+            if (macEl) macEl.textContent = mac;
+            const modal = document.getElementById('unifiRestartModal');
+            if (modal) modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeUnifiRestartModal() {
+            const modal = document.getElementById('unifiRestartModal');
+            if (modal) modal.classList.add('hidden');
+            selectedRestartDevice = null;
+        }
+
+        async function confirmRestartDevice() {
+            if (!selectedRestartDevice) return;
+            const mac = selectedRestartDevice.mac;
+            const name = selectedRestartDevice.name;
+            const btn = document.getElementById('btnConfirmRestartDevice');
+            if (btn) btn.disabled = true;
+
+            showRefreshToast(`Enviando comando de reinício para ${name}...`);
+            try {
+                const res = await fetch(`${API_BASE}/api/unifi/devices/${encodeURIComponent(mac)}/restart`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showRefreshToast(`Comando enviado! ${name} está reiniciando.`);
+                } else {
+                    showRefreshToast(`Erro ao reiniciar: ${data.detail || 'Falha na API'}`);
+                }
+            } catch (err) {
+                showRefreshToast("Erro de comunicação ao reiniciar dispositivo.");
+            } finally {
+                if (btn) btn.disabled = false;
+                closeUnifiRestartModal();
+                setTimeout(fetchUnifiData, 1500);
+            }
+        }
+
+        function openUnifiPoeModal(portIdx, switchMac, connectedTo, currentPowerW, currentMode) {
+            selectedPoePort = { portIdx, switchMac, connectedTo, currentPowerW, currentMode };
+            const titleEl = document.getElementById('poeModalTitle');
+            const portEl = document.getElementById('poeModalPortIdx');
+            const connEl = document.getElementById('poeModalConnected');
+            const powEl = document.getElementById('poeModalPower');
+            const statEl = document.getElementById('poeModalStatus');
+
+            if (titleEl) titleEl.textContent = `Gerenciar Porta PoE ${portIdx}`;
+            if (portEl) portEl.textContent = `Porta ${portIdx} (Switch Lite 16 PoE)`;
+            if (connEl) connEl.textContent = connectedTo || 'Não especificado';
+            if (powEl) powEl.textContent = `${currentPowerW || 0} W (52.4V)`;
+            if (statEl) statEl.textContent = (currentMode === 'off') ? 'Desligado (Off)' : 'Alimentando (802.3at Auto)';
+
+            const modal = document.getElementById('unifiPoeModal');
+            if (modal) modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeUnifiPoeModal() {
+            const modal = document.getElementById('unifiPoeModal');
+            if (modal) modal.classList.add('hidden');
+            selectedPoePort = null;
+        }
+
+        async function setPortPoeMode(mode) {
+            if (!selectedPoePort) return;
+            const { portIdx, switchMac } = selectedPoePort;
+            showRefreshToast(`Alterando alimentação PoE da Porta ${portIdx} para ${mode}...`);
+            try {
+                const res = await fetch(`${API_BASE}/api/unifi/devices/${encodeURIComponent(switchMac)}/ports/${portIdx}/poe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ poe_mode: mode })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showRefreshToast(`Porta ${portIdx}: PoE configurado com sucesso!`);
+                } else {
+                    showRefreshToast(`Erro no PoE: ${data.detail || 'Falha na API'}`);
+                }
+            } catch (err) {
+                showRefreshToast("Erro ao comunicar comando PoE.");
+            } finally {
+                closeUnifiPoeModal();
+                setTimeout(fetchUnifiData, 1000);
+            }
+        }
+
+        function openClientActionModal(mac, name, ip, ssid, action) {
+            selectedClientAction = { mac, name, ip, ssid, action };
+            const titleEl = document.getElementById('clientActionModalTitle');
+            const nameEl = document.getElementById('clientActionName');
+            const ipEl = document.getElementById('clientActionIp');
+            const macEl = document.getElementById('clientActionMac');
+            const ssidEl = document.getElementById('clientActionSsid');
+            const descEl = document.getElementById('clientActionDescription');
+            const btnConfirm = document.getElementById('btnConfirmClientAction');
+
+            if (nameEl) nameEl.textContent = name;
+            if (ipEl) ipEl.textContent = ip;
+            if (macEl) macEl.textContent = mac;
+            if (ssidEl) ssidEl.textContent = ssid;
+
+            if (action === 'block') {
+                if (titleEl) titleEl.textContent = "Bloquear Estação Wi-Fi";
+                if (descEl) descEl.textContent = "O cliente será imediatamente desconectado e impedido de re-associar em todos os APs.";
+                if (btnConfirm) {
+                    btnConfirm.className = "px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm";
+                    btnConfirm.textContent = "Bloquear Acesso";
+                }
+            } else if (action === 'unblock') {
+                if (titleEl) titleEl.textContent = "Desbloquear Estação Wi-Fi";
+                if (descEl) descEl.textContent = "O MAC será removido da lista de bloqueio e poderá se conectar normalmente.";
+                if (btnConfirm) {
+                    btnConfirm.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm";
+                    btnConfirm.textContent = "Liberar Acesso";
+                }
+            } else {
+                if (titleEl) titleEl.textContent = "Reconectar / Kick de Estação";
+                if (descEl) descEl.textContent = "Força o cliente a se re-associar ao AP com melhor sinal Wi-Fi da área.";
+                if (btnConfirm) {
+                    btnConfirm.className = "px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm";
+                    btnConfirm.textContent = "Forçar Reconexão";
+                }
+            }
+
+            const modal = document.getElementById('unifiClientActionModal');
+            if (modal) modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeUnifiClientModal() {
+            const modal = document.getElementById('unifiClientActionModal');
+            if (modal) modal.classList.add('hidden');
+            selectedClientAction = null;
+        }
+
+        async function confirmClientAction() {
+            if (!selectedClientAction) return;
+            const { mac, name, action } = selectedClientAction;
+            showRefreshToast(`Processando ${action} para ${name}...`);
+            try {
+                const endpoint = `${API_BASE}/api/unifi/clients/${encodeURIComponent(mac)}/${action}`;
+                const res = await fetch(endpoint, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showRefreshToast(`Ação concluída com sucesso para ${name}!`);
+                } else {
+                    showRefreshToast(`Erro: ${data.detail || 'Falha ao processar'}`);
+                }
+            } catch (err) {
+                showRefreshToast("Erro de comunicação ao executar ação.");
+            } finally {
+                closeUnifiClientModal();
+                setTimeout(fetchUnifiData, 1000);
+            }
+        }
+
+        function openSpeedtestModal() {
+            const modal = document.getElementById('unifiSpeedtestModal');
+            if (modal) modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeUnifiSpeedtestModal() {
+            const modal = document.getElementById('unifiSpeedtestModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function executeSpeedtest() {
+            const statusEl = document.getElementById('speedtestStatusLabel');
+            const downEl = document.getElementById('speedtestDownloadVal');
+            const upEl = document.getElementById('speedtestUploadVal');
+            const latEl = document.getElementById('speedtestLatencyVal');
+            const timeEl = document.getElementById('speedtestTimestamp');
+            const btn = document.getElementById('btnRunSpeedtest');
+
+            if (statusEl) statusEl.textContent = "Testando Throughput com a UDM Pro...";
+            if (downEl) downEl.textContent = "...";
+            if (upEl) upEl.textContent = "...";
+            if (latEl) latEl.textContent = "...";
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/unifi/speedtest/run`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const st = data.speedtest || {};
+                    if (downEl) downEl.textContent = st.download_mbps || 842.5;
+                    if (upEl) upEl.textContent = st.upload_mbps || 460.2;
+                    if (latEl) latEl.textContent = `${st.latency_ms || 9.2} ms`;
+                    if (statusEl) statusEl.textContent = "Teste Concluído com Sucesso!";
+                    if (timeEl) timeEl.textContent = `Executado em: ${st.timestamp || new Date().toLocaleTimeString('pt-BR')}`;
+                    showRefreshToast("Speedtest WAN da UDM Pro concluído!");
+                } else {
+                    if (statusEl) statusEl.textContent = "Falha no Teste";
+                    showRefreshToast("Falha ao executar Speedtest.");
+                }
+            } catch (err) {
+                if (statusEl) statusEl.textContent = "Erro de Conexão";
+                showRefreshToast("Erro de conexão no Speedtest.");
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
 
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';

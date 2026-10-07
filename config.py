@@ -29,9 +29,24 @@ class Config:
     ADMIN_MASTER_KEY = os.getenv("ADMIN_MASTER_KEY", "AcronisCyberAdminMasterKey#2026!")
     ADMIN_PORT = int(os.getenv("ADMIN_PORT", "8001"))
 
+    # =========================================================================
+    # Configurações de Conexão com a API UniFi Controller / UniFi OS / UDM Pro
+    # =========================================================================
+    UNIFI_HOST = os.getenv("UNIFI_HOST", os.getenv("UNIFI_CONTROLLER_URL", "https://api.ui.com")).rstrip("/")
+    UNIFI_CONTROLLER_URL = UNIFI_HOST
+    UNIFI_SITE = os.getenv("UNIFI_SITE", "default")
+    UNIFI_USERNAME = os.getenv("UNIFI_USERNAME", "")
+    UNIFI_PASSWORD = os.getenv("UNIFI_PASSWORD", "")
+    UNIFI_API_KEY = os.getenv("UNIFI_API_KEY", "")
+    UNIFI_VERIFY_SSL = os.getenv("UNIFI_VERIFY_SSL", "false").lower() in ("true", "1", "yes")
+    UNIFI_MOCK = os.getenv("UNIFI_MOCK", "false").lower() in ("true", "1", "yes")
+
+    # Segredo para criptografia e integridade de sessões na VPS
+    SESSION_SECRET = os.getenv("SESSION_SECRET", "CyberProtectUniFiMasterSecretKey#2026!SecureSession")
+
     @classmethod
     def is_mock_enabled(cls) -> bool:
-        """Retorna se o modo Mock/Demonstração deve ser ativado."""
+        """Retorna se o modo Mock/Demonstração da Acronis deve ser ativado."""
         if cls.FORCE_MOCK:
             return True
         # Se as credenciais forem vazias ou padrão de exemplo
@@ -40,3 +55,17 @@ class Config:
         if not c_id or not c_sec or "seu_client_id" in c_id or "seu_client_secret" in c_sec:
             return True
         return False
+
+    @classmethod
+    def is_unifi_configured(cls) -> bool:
+        """Verifica se a URL e credenciais básicas da controladora UniFi foram fornecidas."""
+        if cls.UNIFI_MOCK:
+            return False
+        if cls.UNIFI_API_KEY:
+            return True
+        url = (cls.UNIFI_HOST or "").strip()
+        if not url:
+            return False
+        u = (cls.UNIFI_USERNAME or "").strip()
+        p = (cls.UNIFI_PASSWORD or "").strip()
+        return bool(u and p and "seu_usuario" not in u.lower())

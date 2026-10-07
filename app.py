@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 import uvicorn
 from config import Config
 from acronis_client import AcronisClient, AcronisAPIError
+from unifi_client import UniFiClient, UniFiAPIError
 from excel_export import generate_policies_excel
 import auth
 
@@ -20,8 +21,8 @@ logger = logging.getLogger("app")
 
 app = FastAPI(
     title="Dashboard JM Cyber Protect",
-    description="Painel web corporativo para monitoramento centralizado de alertas, dispositivos, status de risco, planos de proteção e filtro web via API oficial Acronis.",
-    version="1.2.0"
+    description="Painel web corporativo para monitoramento centralizado de alertas, dispositivos, status de risco, planos de proteção, filtro web e rede UniFi.",
+    version="1.3.0"
 )
 
 # ==================== MIDDLEWARE DE SEGURANÇA E CABEÇALHOS ====================
@@ -56,8 +57,9 @@ async def add_security_headers(request: Request, call_next):
     )
     return response
 
-# Instância do cliente Acronis
+# Instância do cliente Acronis e UniFi
 acronis = AcronisClient()
+unifi = UniFiClient()
 
 # Configuração de templates HTML (Jinja2) e arquivos estáticos
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
@@ -181,6 +183,20 @@ async def acronis_api_exception_handler(request: Request, exc: AcronisAPIError):
         }
     )
 
+@app.exception_handler(UniFiAPIError)
+async def unifi_api_exception_handler(request: Request, exc: UniFiAPIError):
+    logger.error(f"[UNIFI API ERROR] Falha no endpoint {request.url.path}: {exc.message}")
+    return JSONResponse(
+        status_code=exc.status_code or status.HTTP_502_BAD_GATEWAY,
+        content={
+            "error": True,
+            "status": "unifi_api_failure",
+            "message": "Falha na comunicação ou autenticação com a API do UniFi Controller.",
+            "detail": exc.message,
+            "endpoint": request.url.path
+        }
+    )
+
 # ==================== ROTAS DE AUTENTICAÇÃO & INTERFACE ====================
 
 @app.get("/login", response_class=HTMLResponse)
@@ -264,7 +280,9 @@ async def index_page(request: Request):
         context={
             "user": user,
             "is_mock": acronis.is_mock,
-            "acronis_url": Config.ACRONIS_URL
+            "acronis_url": Config.ACRONIS_URL,
+            "is_unifi_configured": Config.is_unifi_configured(),
+            "unifi_url": unifi.base_url
         }
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
@@ -274,11 +292,12 @@ async def index_page(request: Request):
 
 @app.post("/api/refresh", dependencies=[Depends(require_auth)])
 async def trigger_refresh():
-    """Limpa o cache em memória para forçar uma consulta 100% fresca à API da Acronis."""
+    """Limpa o cache em memória para forçar uma consulta 100% fresca às APIs Acronis e UniFi."""
     acronis.clear_cache()
+    unifi.clear_cache()
     return {
         "success": True,
-        "message": "Cache limpo com sucesso. Dados atualizados diretamente da API Acronis."
+        "message": "Cache limpo com sucesso. Dados atualizados diretamente das APIs Acronis e UniFi."
     }
 
 @app.get("/api/status", dependencies=[Depends(require_auth)])
@@ -457,6 +476,165 @@ async def get_url_filtering_summary():
     summary = await acronis.get_url_filtering_summary()
     validated = UrlFilteringSummaryModel(**summary)
     return validated.model_dump()
+
+# ==================== ROTAS DE REDE & CONECTIVIDADE (UNIFI CONTROLLER) ====================
+
+class PoePortRequest(BaseModel):
+    mode: Optional[str] = Field(None, description="Modo PoE: auto, off ou power-cycle")
+    poe_mode: Optional[str] = Field(None, description="Alias para mode")
+
+@app.get("/api/unifi/summary", dependencies=[Depends(require_auth)])
+async def get_unifi_summary():
+    """Retorna o resumo consolidado, KPIs da rede UniFi e status da conexão com a controladora."""
+    return await unifi.get_summary()
+
+@app.get("/api/unifi/devices", dependencies=[Depends(require_auth)])
+async def get_unifi_devices(
+    search: Optional[str] = Query(None, max_length=100, description="Busca textual por nome, IP, MAC ou modelo"),
+    device_type: Optional[str] = Query(None, max_length=20, pattern=r"^(all|uap|usw|udm|ugw)?$", description="Filtro por tipo de dispositivo"),
+    device_status: Optional[str] = Query(None, max_length=20, pattern=r"^(all|online|offline|attention)?$", description="Filtro por status")
+):
+    """Retorna os dispositivos de infraestrutura UniFi (APs, Switches, Gateways) com filtros sanitizados."""
+    clean_search = sanitize_user_input(search, max_len=100)
+    devices = await unifi.get_devices()
+
+    if clean_search:
+        s = clean_search.lower()
+        devices = [d for d in devices if s in d.get("name", "").lower() or s in d.get("ip", "").lower() or s in d.get("mac", "").lower() or s in d.get("model", "").lower()]
+
+    if device_type and device_type != "all":
+        devices = [d for d in devices if d.get("type", "").lower() == device_type.lower()]
+
+    if device_status and device_status != "all":
+        if device_status == "attention":
+            devices = [d for d in devices if d.get("status") != "online" or d.get("upgradable")]
+        else:
+            devices = [d for d in devices if d.get("status") == device_status]
+
+    return {"devices": devices, "count": len(devices)}
+
+@app.get("/api/unifi/clients", dependencies=[Depends(require_auth)])
+async def get_unifi_clients(
+    search: Optional[str] = Query(None, max_length=100, description="Busca textual por nome, hostname, IP ou MAC"),
+    connection: Optional[str] = Query(None, max_length=20, pattern=r"^(all|wireless|wired)?$", description="Filtro por tipo de conexão: all, wireless, wired"),
+    network: Optional[str] = Query(None, max_length=20, pattern=r"^(all|corporate|guest)?$", description="Filtro por rede: all, corporate, guest"),
+    ssid: Optional[str] = Query(None, max_length=50, description="Filtro por SSID: JM-Mobile, JM-Adm, JM-TV, JM-Visitantes, JM-Guest"),
+    vlan: Optional[int] = Query(None, ge=1, le=4094, description="Filtro por VLAN: 1, 70, 60"),
+    signal: Optional[str] = Query(None, max_length=20, pattern=r"^(all|excellent|good|weak)?$", description="Filtro por qualidade do sinal")
+):
+    """Retorna a lista de clientes ativamente conectados na rede UniFi com filtros aplicados."""
+    clean_search = sanitize_user_input(search, max_len=100)
+    clients = await unifi.get_clients()
+
+    if clean_search:
+        s = clean_search.lower()
+        clients = [c for c in clients if s in c.get("name", "").lower() or s in c.get("ip", "").lower() or s in c.get("mac", "").lower() or s in c.get("essid", "").lower()]
+
+    if connection and connection != "all":
+        clients = [c for c in clients if c.get("connection_type") == connection]
+
+    if network and network != "all":
+        clients = [c for c in clients if c.get("network_type") == network]
+
+    if ssid and ssid != "all":
+        clients = [c for c in clients if (c.get("ssid") or c.get("essid", "")).lower() == ssid.lower()]
+
+    if vlan is not None:
+        clients = [c for c in clients if c.get("vlan") == vlan]
+
+    if signal and signal != "all":
+        if signal == "excellent":
+            clients = [c for c in clients if not c.get("is_wired") and c.get("signal", -100) > -60]
+        elif signal == "good":
+            clients = [c for c in clients if not c.get("is_wired") and -75 <= c.get("signal", -100) <= -60]
+        elif signal == "weak":
+            clients = [c for c in clients if not c.get("is_wired") and c.get("signal", -100) < -75]
+
+    return {"clients": clients, "count": len(clients)}
+
+@app.get("/api/unifi/networks", dependencies=[Depends(require_auth)])
+async def get_unifi_networks():
+    """Retorna detalhes oficiais das sub-redes e VLANs (LAN Principal, VLAN 70, VLAN 60) e ocupação do DHCP."""
+    networks = await unifi.get_networks()
+    return {"networks": networks, "count": len(networks)}
+
+@app.get("/api/unifi/wans", dependencies=[Depends(require_auth)])
+async def get_unifi_wans():
+    """Retorna monitoramento detalhado das portas WAN e ISPs (Vivo Fibra e SAMM Telecomunicações)."""
+    return await unifi.get_wans()
+
+@app.get("/api/unifi/ports", dependencies=[Depends(require_auth)])
+async def get_unifi_ports():
+    """Retorna a matriz de portas físicas interativa da UDM Pro e do Switch USW Lite 16 PoE."""
+    return await unifi.get_port_matrix()
+
+@app.get("/api/unifi/analytics", dependencies=[Depends(require_auth)])
+async def get_unifi_analytics():
+    """Retorna métricas analíticas calculadas para gráficos (SSID, VLAN, WAN history, distribuição, top consumidores)."""
+    return await unifi.get_analytics()
+
+@app.post("/api/unifi/refresh", dependencies=[Depends(require_auth)])
+async def refresh_unifi():
+    """Força limpeza de cache específica do módulo UniFi."""
+    unifi.clear_cache()
+    return {"success": True, "message": "Cache do UniFi limpo com sucesso."}
+
+@app.post("/api/unifi/devices/{mac}/restart", dependencies=[Depends(require_auth)])
+async def restart_unifi_device(mac: str = Path(..., min_length=12, max_length=20)):
+    """Reinicia remotamente um Access Point ou Switch da rede."""
+    clean_mac = sanitize_user_input(mac, max_len=20)
+    if not clean_mac:
+        raise HTTPException(status_code=400, detail="Endereço MAC inválido.")
+    result = await unifi.restart_device(clean_mac)
+    auth.log_audit_event("unifi_restart_device", f"Reinicialização disparada para equipamento MAC {clean_mac}")
+    return result
+
+@app.post("/api/unifi/devices/{mac}/ports/{port_idx}/poe", dependencies=[Depends(require_auth)])
+async def set_unifi_poe_port(
+    mac: str = Path(..., min_length=12, max_length=20),
+    port_idx: int = Path(..., ge=1, le=48),
+    payload: PoePortRequest = None
+):
+    """Liga, desliga ou reinicia energia PoE em uma porta do switch."""
+    clean_mac = sanitize_user_input(mac, max_len=20)
+    raw_mode = (payload.mode or payload.poe_mode or "power-cycle") if payload else "power-cycle"
+    mode = "power-cycle" if raw_mode in ["cycle", "power-cycle"] else str(raw_mode).lower()
+    if mode not in ["auto", "off", "power-cycle"]:
+        mode = "auto"
+    result = await unifi.set_poe_port(clean_mac, port_idx, mode)
+    auth.log_audit_event("unifi_set_poe", f"Porta {port_idx} do switch {clean_mac} configurada com PoE={mode}")
+    return result
+
+@app.post("/api/unifi/clients/{mac}/block", dependencies=[Depends(require_auth)])
+async def block_unifi_client(mac: str = Path(..., min_length=12, max_length=20)):
+    """Bloqueia um cliente na rede UniFi."""
+    clean_mac = sanitize_user_input(mac, max_len=20)
+    result = await unifi.block_client(clean_mac)
+    auth.log_audit_event("unifi_block_client", f"Cliente MAC {clean_mac} bloqueado")
+    return result
+
+@app.post("/api/unifi/clients/{mac}/unblock", dependencies=[Depends(require_auth)])
+async def unblock_unifi_client(mac: str = Path(..., min_length=12, max_length=20)):
+    """Desbloqueia um cliente previamente bloqueado."""
+    clean_mac = sanitize_user_input(mac, max_len=20)
+    result = await unifi.unblock_client(clean_mac)
+    auth.log_audit_event("unifi_unblock_client", f"Cliente MAC {clean_mac} desbloqueado")
+    return result
+
+@app.post("/api/unifi/clients/{mac}/reconnect", dependencies=[Depends(require_auth)])
+async def reconnect_unifi_client(mac: str = Path(..., min_length=12, max_length=20)):
+    """Força reconexão (kick-sta) de um cliente Wi-Fi."""
+    clean_mac = sanitize_user_input(mac, max_len=20)
+    result = await unifi.reconnect_client(clean_mac)
+    auth.log_audit_event("unifi_kick_client", f"Reconexão forçada para cliente MAC {clean_mac}")
+    return result
+
+@app.post("/api/unifi/speedtest/run", dependencies=[Depends(require_auth)])
+async def run_unifi_speedtest():
+    """Dispara teste de velocidade nos links de internet da UDM Pro."""
+    result = await unifi.run_speedtest()
+    auth.log_audit_event("unifi_speedtest", "Teste de velocidade WAN disparado")
+    return result
 
 if __name__ == "__main__":
     print(f"[+] Iniciando Painel Acronis em http://localhost:{Config.PORT}")
