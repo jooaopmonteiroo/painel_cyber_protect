@@ -73,6 +73,13 @@ class ResetPasswordSchema(BaseModel):
 
 # ==================== ROTAS DE INTERFACE ====================
 
+@app.head("/")
+@app.head("/admin")
+@app.head("/health")
+async def head_check():
+    """Suporte a requisições HEAD (healthchecks e verificações de uptime)."""
+    return Response(status_code=status.HTTP_200_OK)
+
 @app.get("/health")
 async def health_check():
     """Endpoint leve de verificação de integridade / healthcheck."""
