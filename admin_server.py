@@ -73,7 +73,13 @@ class ResetPasswordSchema(BaseModel):
 
 # ==================== ROTAS DE INTERFACE ====================
 
+@app.get("/health")
+async def health_check():
+    """Endpoint leve de verificação de integridade / healthcheck."""
+    return {"status": "healthy", "service": "admin-console"}
+
 @app.get("/", response_class=HTMLResponse)
+@app.get("/admin", response_class=HTMLResponse)
 async def admin_index(request: Request):
     """Renderiza o Painel de Administração Externo."""
     is_auth = verify_master_access(request)
