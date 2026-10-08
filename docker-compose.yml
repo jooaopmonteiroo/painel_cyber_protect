@@ -14,6 +14,11 @@ services:
       - ./.env:/app/.env:ro
       - ./static:/app/static
       - ./templates:/app/templates
+      - ./app.py:/app/app.py
+      - ./unifi_client.py:/app/unifi_client.py
+      - ./acronis_client.py:/app/acronis_client.py
+      - ./config.py:/app/config.py
+      - ./auth.py:/app/auth.py
     environment:
       - PYTHONUNBUFFERED=1
       - TZ=America/Sao_Paulo
@@ -46,6 +51,10 @@ services:
       - ./.env:/app/.env:ro
       - ./static:/app/static
       - ./templates:/app/templates
+      - ./admin_server.py:/app/admin_server.py
+      - ./admin_cli.py:/app/admin_cli.py
+      - ./config.py:/app/config.py
+      - ./auth.py:/app/auth.py
     environment:
       - PYTHONUNBUFFERED=1
       - TZ=America/Sao_Paulo
