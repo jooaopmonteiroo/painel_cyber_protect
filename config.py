@@ -31,13 +31,22 @@ class Config:
 
     # =========================================================================
     # Configurações de Conexão com a API UniFi Controller / UniFi OS / UDM Pro
+    # Conexão direta via túnel OpenVPN na VPS (IP local UDM Pro: https://192.168.99.1)
     # =========================================================================
-    UNIFI_HOST = os.getenv("UNIFI_HOST", os.getenv("UNIFI_CONTROLLER_URL", "https://api.ui.com")).rstrip("/")
+    UNIFI_LOCAL_URL = os.getenv("UNIFI_LOCAL_URL", "https://192.168.99.1").rstrip("/")
+    _raw_host = (os.getenv("UNIFI_HOST") or os.getenv("UNIFI_CONTROLLER_URL") or "").strip()
+    # Migração definitiva: Se não configurado ou se apontando para api.ui.com, prioriza a UDM Pro local pela VPN
+    if not _raw_host or "api.ui.com" in _raw_host:
+        UNIFI_HOST = UNIFI_LOCAL_URL
+    else:
+        UNIFI_HOST = _raw_host.rstrip("/")
+
     UNIFI_CONTROLLER_URL = UNIFI_HOST
     UNIFI_SITE = os.getenv("UNIFI_SITE", "default")
     UNIFI_USERNAME = os.getenv("UNIFI_USERNAME", "")
     UNIFI_PASSWORD = os.getenv("UNIFI_PASSWORD", "")
     UNIFI_API_KEY = os.getenv("UNIFI_API_KEY", "")
+    # Autoassinado na UDM local: verify=False (rejectUnauthorized: false) por padrão
     UNIFI_VERIFY_SSL = os.getenv("UNIFI_VERIFY_SSL", "false").lower() in ("true", "1", "yes")
     UNIFI_MOCK = os.getenv("UNIFI_MOCK", "false").lower() in ("true", "1", "yes")
 
@@ -68,4 +77,7 @@ class Config:
             return False
         u = (cls.UNIFI_USERNAME or "").strip()
         p = (cls.UNIFI_PASSWORD or "").strip()
-        return bool(u and p and "seu_usuario" not in u.lower())
+        if u and p and "seu_usuario" not in u.lower():
+            return True
+        # Se apontando para gateway local da VPN (192.168.99.1 / 192.168.15.1), considera configurado
+        return "192.168" in url or "10." in url or "172." in url
