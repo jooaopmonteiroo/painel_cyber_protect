@@ -1296,6 +1296,7 @@ class UniFiClient:
             }
             if self.api_key:
                 headers["X-API-KEY"] = self.api_key
+                headers["Authorization"] = f"Bearer {self.api_key}"
             csrf = (
                 self._csrf_token
                 or self._session_cookies.get("csrf_token")
@@ -1307,16 +1308,26 @@ class UniFiClient:
             unifi_os_url = f"{base}/proxy/network/api/s/{self.site}/{clean_suffix}"
             classic_url = f"{base}/api/s/{self.site}/{clean_suffix}"
 
+            # Lista de endpoints e payloads candidatos para execução
+            endpoints_to_try = [
+                (unifi_os_url, payload),
+                (classic_url, payload),
+            ]
+            if cmd_name == "restart" and "mac" in payload:
+                dev_mac = payload["mac"]
+                endpoints_to_try.append((f"{base}/proxy/network/integration/v1/sites/{self.site}/devices/{dev_mac}/actions", {"action": "RESTART"}))
+                endpoints_to_try.append((f"{base}/proxy/network/integration/v1/sites/default/devices/{dev_mac}/actions", {"action": "RESTART"}))
+
             async with httpx.AsyncClient(
                 verify=self.verify_ssl,
                 timeout=req_timeout,
                 headers=headers,
                 cookies=self._session_cookies
             ) as client:
-                for target_url in [unifi_os_url, classic_url]:
+                for target_url, target_payload in endpoints_to_try:
                     try:
                         logger.info(f"[UniFi Admin] Enviando comando '{cmd_name}' para {target_url}...")
-                        res = await client.post(target_url, json=payload)
+                        res = await client.post(target_url, json=target_payload)
                         logger.info(f"[UniFi Admin] Resposta de {target_url}: HTTP {res.status_code}")
 
                         # Se 401 ou 403 e tiver credenciais de login, tenta renovar sessão
@@ -1328,10 +1339,10 @@ class UniFiClient:
                                 fresh_csrf = self._csrf_token or self._session_cookies.get("csrf_token")
                                 if fresh_csrf:
                                     headers["X-CSRF-Token"] = fresh_csrf
-                                res = await client.post(target_url, json=payload, headers=headers, cookies=self._session_cookies)
+                                res = await client.post(target_url, json=target_payload, headers=headers, cookies=self._session_cookies)
                                 logger.info(f"[UniFi Admin] Resposta pós-renovação de {target_url}: HTTP {res.status_code}")
 
-                        if res.status_code == 200:
+                        if res.status_code in (200, 201, 204):
                             try:
                                 data = res.json()
                             except Exception:
@@ -1352,8 +1363,11 @@ class UniFiClient:
                                 last_error = f"UDM Pro: {msg}"
                                 break
                         elif res.status_code == 404:
-                            # 404 em proxy/network é esperado se for controller classic; tenta o próximo endpoint
                             continue
+                        elif res.status_code == 401:
+                            last_error = "UDM Pro (192.168.15.1) retornou 401 Unauthorized. Declare UNIFI_USERNAME e UNIFI_PASSWORD no .env da VPS."
+                        elif res.status_code == 403:
+                            last_error = "UDM Pro (192.168.15.1) retornou 403 Forbidden. O usuário/chave não possui permissão de escrita/administração."
                         else:
                             last_error = f"HTTP {res.status_code}"
                     except (httpx.ConnectError, httpx.ConnectTimeout) as conn_err:
