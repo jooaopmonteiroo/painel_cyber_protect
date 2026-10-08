@@ -82,6 +82,10 @@ class UniFiClient:
         self._last_auth_time: float = 0
         self._auth_ttl_seconds = 3600  # 1 hora
 
+        # Circuit-breaker / Cooldown para evitar bloqueio por rate limit de login na controladora
+        self._login_backoff_until: float = 0.0
+        self._consecutive_login_failures: int = 0
+
         # Cache em memória
         self._cache: Dict[str, Any] = {}
         self._cache_timestamp: Dict[str, float] = {}
@@ -191,6 +195,11 @@ class UniFiClient:
         if self.is_cloud and not target_base_url:
             return True
 
+        # Se login estiver em backoff/cooldown (ex: 429 Rate Limit ou falhas sucessivas)
+        if time.time() < self._login_backoff_until and not target_base_url:
+            logger.debug(f"[UniFi] Tentativa de login ignorada: cooldown ativo por mais {self._login_backoff_until - time.time():.1f}s")
+            return False
+
         # Se sessão ainda estiver recente (menos de 50 minutos) e não for URL customizada
         if self._session_cookies and (time.time() - self._last_auth_time) < (self._auth_ttl_seconds - 600) and not target_base_url:
             return True
@@ -206,7 +215,7 @@ class UniFiClient:
             "rememberMe": True
         }
 
-        login_timeout = httpx.Timeout(connect=1.5, read=4.0, write=4.0, pool=2.0)
+        login_timeout = httpx.Timeout(connect=1.5, read=3.0, write=3.0, pool=2.0)
         candidate_bases = [target_base_url] if target_base_url else self._get_candidate_bases()
 
         for base in candidate_bases:
@@ -230,8 +239,19 @@ class UniFiClient:
                             or res.cookies.get("TOKEN")
                         )
                         self._last_auth_time = time.time()
+                        self._login_backoff_until = 0.0
+                        self._consecutive_login_failures = 0
                         logger.info(f"[UniFi] Autenticado com sucesso via UniFi OS em {base} (CSRF: {'presente' if self._csrf_token else 'ausente'})")
                         return True
+                    elif res.status_code == 429:
+                        self._login_backoff_until = time.time() + 180.0
+                        logger.warning(f"[UniFi] UDM Pro em {base} retornou 429 (Rate Limit de Login). Cooldown de 180s ativado.")
+                        return False
+                    elif res.status_code in (401, 403, 499):
+                        self._consecutive_login_failures += 1
+                        if self._consecutive_login_failures >= 2:
+                            self._login_backoff_until = time.time() + 60.0
+                            logger.warning(f"[UniFi] Falha de autenticação ({res.status_code}) em {base}. Backoff de 60s ativado.")
                 except Exception as e:
                     logger.debug(f"[UniFi] Tentativa UniFi OS falhou em {base} ({e}), tentando Controller tradicional...")
 
@@ -252,8 +272,13 @@ class UniFiClient:
                             or res.cookies.get("TOKEN")
                         )
                         self._last_auth_time = time.time()
+                        self._login_backoff_until = 0.0
+                        self._consecutive_login_failures = 0
                         logger.info(f"[UniFi] Autenticado com sucesso via Classic Controller em {base}")
                         return True
+                    elif res.status_code == 429:
+                        self._login_backoff_until = time.time() + 180.0
+                        return False
                 except Exception as e:
                     logger.debug(f"[UniFi] Falha ao autenticar em {base}: {e}")
 
@@ -275,6 +300,15 @@ class UniFiClient:
         if not self.is_configured:
             return None
 
+        # Se não temos cookies e temos credenciais locais:
+        if (self.username and self.password) and not self._session_cookies:
+            # Se estamos em backoff de login, não trava a requisição tentando localmente
+            if time.time() < self._login_backoff_until:
+                return None
+            logged_in = await self.login()
+            if not logged_in and not self.api_key:
+                return None
+
         clean_path = endpoint.lstrip("/")
         candidate_bases = self._get_candidate_bases()
         if self._active_base_url and self._active_base_url in candidate_bases:
@@ -283,11 +317,11 @@ class UniFiClient:
 
         last_error = None
         for base in candidate_bases:
-            # Garante autenticação se temos usuário e senha e ainda não temos cookies
-            if (self.username and self.password) and not self._session_cookies:
-                await self.login(target_base_url=base)
+            # Se não temos cookies para este host e não conseguimos logar, pula
+            if (self.username and self.password) and not self._session_cookies and not self.api_key:
+                continue
 
-            client = await self._get_client(timeout=3.5)
+            client = await self._get_client(timeout=2.5)
             urls_to_try = [
                 f"{base}/proxy/network/api/s/{self.site}/{clean_path}",
                 f"{base}/api/s/{self.site}/{clean_path}"
@@ -308,11 +342,14 @@ class UniFiClient:
                                 return data["data"]
                             return data
                         elif res.status_code in (401, 403) and retry and self.username and self.password:
-                            logger.warning(f"[UniFi] Sessão expirada ({res.status_code}) em {target_url}. Re-autenticando...")
                             self._session_cookies.clear()
                             self._csrf_token = None
+                            if time.time() < self._login_backoff_until:
+                                return None
+                            logger.warning(f"[UniFi] Sessão expirada ({res.status_code}) em {target_url}. Re-autenticando...")
                             if await self.login(target_base_url=base):
                                 return await self._request(endpoint, retry=False)
+                            return None
                     except httpx.RequestError as e:
                         last_error = e
                         continue
@@ -320,7 +357,7 @@ class UniFiClient:
                 await client.aclose()
 
         if last_error:
-            raise UniFiAPIError(f"Erro na comunicação com controladora UniFi ({endpoint}): {last_error}")
+            logger.debug(f"[UniFi] Falha ao comunicar com controladora ({endpoint}): {last_error}")
         return None
 
     # =========================================================================

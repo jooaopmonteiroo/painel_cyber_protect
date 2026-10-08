@@ -664,8 +664,10 @@ async def unifi_realtime_stream(request: Request, user: Dict[str, Any] = Depends
                 logger.debug("[SSE UniFi] Cliente desconectado do stream em tempo real.")
                 break
             try:
-                tick = await unifi.get_realtime_tick()
+                tick = await asyncio.wait_for(unifi.get_realtime_tick(), timeout=3.0)
                 yield f"data: {json.dumps(tick)}\n\n"
+            except asyncio.TimeoutError:
+                logger.debug("[SSE UniFi] Timeout de 3s ao gerar tick instantâneo")
             except Exception as e:
                 logger.warning(f"[SSE UniFi] Erro ao emitir tick de telemetria: {e}")
                 err_payload = json.dumps({"error": str(e), "timestamp": datetime.now(timezone.utc).isoformat()})
