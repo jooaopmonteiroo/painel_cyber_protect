@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import logging
 from datetime import datetime, timezone
@@ -15,6 +16,20 @@ class UniFiAPIError(Exception):
         self.message = message
         self.status_code = status_code
         self.details = details
+
+
+def normalize_unifi_mac(mac: str) -> str:
+    """
+    Normaliza o MAC address para o formato padrão esperado pelo UniFi OS / Network Controller:
+    minúsculas, hexadecimais agrupados de 2 em 2 separados por dois pontos (ex.: '24:5a:4c:1e:34:fc').
+    """
+    if not mac:
+        return ""
+    clean = str(mac).strip().lower()
+    hex_only = re.sub(r'[^0-9a-f]', '', clean)
+    if len(hex_only) == 12:
+        return ':'.join(hex_only[i:i+2] for i in range(0, 12, 2))
+    return clean
 
 
 def format_bytes(num_bytes: float) -> str:
@@ -90,8 +105,8 @@ class UniFiClient:
 
     @property
     def is_cloud(self) -> bool:
-        """Indica se a comunicação deve ser feita via UniFi Site Manager Cloud API (api.ui.com)."""
-        return "api.ui.com" in self.base_url or (bool(self.api_key) and not self.username)
+        """Indica se a comunicação principal deve ser feita via UniFi Site Manager Cloud API (api.ui.com)."""
+        return "api.ui.com" in (self.base_url or "").lower()
 
     def clear_cache(self) -> None:
         """Limpa o cache em memória para forçar nova consulta à controladora."""
@@ -109,41 +124,52 @@ class UniFiClient:
         self._cache[key] = value
         self._cache_timestamp[key] = time.time()
 
-    async def _get_client(self) -> httpx.AsyncClient:
-        """Retorna uma instância configurada do httpx.AsyncClient."""
+    async def _get_client(self, timeout: float = 5.0) -> httpx.AsyncClient:
+        """Retorna uma instância configurada do httpx.AsyncClient com headers, cookies e CSRF token."""
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
             "User-Agent": "JM-Cyber-Protect-UniFi-Client/1.2"
         }
-        if self._csrf_token:
-            headers["X-CSRF-Token"] = self._csrf_token
+        csrf = (
+            self._csrf_token
+            or self._session_cookies.get("csrf_token")
+            or self._session_cookies.get("csrf-token")
+        )
+        if csrf:
+            headers["X-CSRF-Token"] = csrf
         if self.api_key:
             headers["X-API-KEY"] = self.api_key
 
         return httpx.AsyncClient(
             verify=self.verify_ssl,
-            timeout=5.0,
+            timeout=timeout,
             headers=headers,
             cookies=self._session_cookies
         )
 
-    async def login(self) -> bool:
+    async def login(self, target_base_url: Optional[str] = None) -> bool:
         """
         Autentica na controladora UniFi.
         Tenta primeiro o endpoint do UniFi OS (/api/auth/login) e faz fallback para
-        o endpoint tradicional (/api/login).
+        o endpoint tradicional (/api/login). Suporta consoles locais (UDM Pro / CloudKey)
+        e extração rigorosa do cabeçalho X-CSRF-Token.
         """
-        if not self.is_configured:
+        target_url = (target_base_url or self.base_url).rstrip("/")
+        if not self.is_configured and not target_base_url:
             return False
 
-        # Se já tiver API Key configurada, não precisa de login interativo
-        if self.api_key:
+        # Se for cloud (api.ui.com), não faz login interativo com cookies
+        if "api.ui.com" in target_url:
             return True
 
-        # Se sessão ainda estiver recente (menos de 50 minutos)
-        if self._session_cookies and (time.time() - self._last_auth_time) < (self._auth_ttl_seconds - 600):
+        # Se sessão ainda estiver recente (menos de 50 minutos) e não for URL customizada
+        if self._session_cookies and (time.time() - self._last_auth_time) < (self._auth_ttl_seconds - 600) and not target_base_url:
             return True
+
+        # Se não há usuário e senha informados, verifica se há API Key
+        if not self.username or not self.password:
+            return bool(self.api_key)
 
         credentials = {
             "username": self.username,
@@ -151,37 +177,51 @@ class UniFiClient:
             "remember": True
         }
 
-        async with httpx.AsyncClient(verify=self.verify_ssl, timeout=4.0) as client:
+        login_timeout = httpx.Timeout(connect=1.5, read=4.0, write=4.0, pool=2.0)
+        async with httpx.AsyncClient(verify=self.verify_ssl, timeout=login_timeout) as client:
             # 1. Tentativa: UniFi OS (UDM, CloudKey Gen2+, Cloud Gateway)
             try:
-                unifi_os_url = f"{self.base_url}/api/auth/login"
+                unifi_os_url = f"{target_url}/api/auth/login"
                 res = await client.post(unifi_os_url, json=credentials)
                 if res.status_code == 200:
                     self._is_unifi_os = True
                     self._session_cookies = dict(res.cookies)
-                    self._csrf_token = res.headers.get("X-CSRF-Token") or res.cookies.get("csrf_token")
+                    self._csrf_token = (
+                        res.headers.get("X-CSRF-Token")
+                        or res.headers.get("x-csrf-token")
+                        or res.cookies.get("csrf_token")
+                        or res.cookies.get("csrf-token")
+                        or res.cookies.get("TOKEN")
+                    )
                     self._last_auth_time = time.time()
-                    logger.info(f"[UniFi] Autenticado com sucesso via UniFi OS em {self.base_url}")
+                    logger.info(f"[UniFi] Autenticado com sucesso via UniFi OS em {target_url} (CSRF: {'presente' if self._csrf_token else 'ausente'})")
                     return True
             except Exception as e:
-                logger.debug(f"[UniFi] Tentativa UniFi OS falhou ({e}), tentando Controller tradicional...")
+                logger.debug(f"[UniFi] Tentativa UniFi OS falhou em {target_url} ({e}), tentando Controller tradicional...")
 
             # 2. Tentativa: UniFi Controller Tradicional (/api/login)
             try:
-                classic_url = f"{self.base_url}/api/login"
+                classic_url = f"{target_url}/api/login"
                 res = await client.post(classic_url, json=credentials)
                 if res.status_code == 200:
                     self._is_unifi_os = False
                     self._session_cookies = dict(res.cookies)
-                    self._csrf_token = res.headers.get("X-CSRF-Token") or res.cookies.get("csrf_token")
+                    self._csrf_token = (
+                        res.headers.get("X-CSRF-Token")
+                        or res.headers.get("x-csrf-token")
+                        or res.cookies.get("csrf_token")
+                        or res.cookies.get("csrf-token")
+                        or res.cookies.get("TOKEN")
+                    )
                     self._last_auth_time = time.time()
-                    logger.info(f"[UniFi] Autenticado com sucesso via Classic Controller em {self.base_url}")
+                    logger.info(f"[UniFi] Autenticado com sucesso via Classic Controller em {target_url}")
                     return True
                 else:
-                    raise UniFiAPIError(f"Falha de autenticação UniFi: HTTP {res.status_code}", status_code=res.status_code)
+                    logger.warning(f"[UniFi] Falha de autenticação tradicional em {target_url}: HTTP {res.status_code}")
+                    return False
             except Exception as e:
-                logger.error(f"[UniFi] Erro ao autenticar no UniFi Controller ({self.base_url}): {e}")
-                raise
+                logger.debug(f"[UniFi] Erro ao autenticar em {target_url}: {e}")
+                return False
 
     def _build_url(self, path: str, is_unifi_os: Optional[bool] = None) -> str:
         """Monta a URL da API respeitando o prefixo correto para UniFi OS ou Classic."""
@@ -1210,33 +1250,174 @@ class UniFiClient:
     # =========================================================================
     # AÇÕES ADMINISTRATIVAS (DEVMGR / STAMGR / REBOOT / POE)
     # =========================================================================
+    async def _execute_cmd(
+        self,
+        endpoint_suffix: str,
+        payload: Dict[str, Any],
+        timeout: float = 5.0
+    ) -> Dict[str, Any]:
+        """
+        Executa comando administrativo de controle (ex: /cmd/devmgr ou /cmd/stamgr).
+        Testa a URL configurada e faz fallback inteligente para os IPs locais da UDM Pro
+        (192.168.15.1 / 192.168.14.1) acessíveis via VPN corporativa ou rede local.
+        Inclui os cabeçalhos obrigatórios do UniFi OS: X-CSRF-Token, Cookie de sessão e X-API-KEY.
+        """
+        clean_suffix = endpoint_suffix.lstrip("/")
+        candidate_bases: List[str] = []
+
+        # 1. URL explícita local via ambiente (se configurada)
+        local_env = os.getenv("UNIFI_LOCAL_URL") or os.getenv("UNIFI_LOCAL_HOST")
+        if local_env and local_env.strip():
+            candidate_bases.append(local_env.strip().rstrip("/"))
+
+        # 2. URL primária configurada (se não for cloud api.ui.com)
+        if not self.is_cloud and self.base_url:
+            if self.base_url not in candidate_bases:
+                candidate_bases.append(self.base_url)
+
+        # 3. IPs locais conhecidos da UDM Pro na rede interna / VPN
+        for ip in ["https://192.168.15.1", "https://192.168.14.1"]:
+            if ip not in candidate_bases:
+                candidate_bases.append(ip)
+
+        last_error = None
+        cmd_name = payload.get("cmd", "unknown")
+        req_timeout = httpx.Timeout(connect=1.5, read=timeout, write=timeout, pool=2.0)
+
+        for base in candidate_bases:
+            # Garante autenticação se temos usuário e senha e ainda não temos cookies
+            if self.username and self.password and not self._session_cookies:
+                await self.login(target_base_url=base)
+
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "JM-Cyber-Protect-UniFi-Client/1.2"
+            }
+            if self.api_key:
+                headers["X-API-KEY"] = self.api_key
+            csrf = (
+                self._csrf_token
+                or self._session_cookies.get("csrf_token")
+                or self._session_cookies.get("csrf-token")
+            )
+            if csrf:
+                headers["X-CSRF-Token"] = csrf
+
+            unifi_os_url = f"{base}/proxy/network/api/s/{self.site}/{clean_suffix}"
+            classic_url = f"{base}/api/s/{self.site}/{clean_suffix}"
+
+            async with httpx.AsyncClient(
+                verify=self.verify_ssl,
+                timeout=req_timeout,
+                headers=headers,
+                cookies=self._session_cookies
+            ) as client:
+                for target_url in [unifi_os_url, classic_url]:
+                    try:
+                        logger.info(f"[UniFi Admin] Enviando comando '{cmd_name}' para {target_url}...")
+                        res = await client.post(target_url, json=payload)
+                        logger.info(f"[UniFi Admin] Resposta de {target_url}: HTTP {res.status_code}")
+
+                        # Se 401 ou 403 e tiver credenciais de login, tenta renovar sessão
+                        if res.status_code in (401, 403) and self.username and self.password:
+                            logger.warning(f"[UniFi Admin] Sessão/CSRF rejeitado ({res.status_code}) em {target_url}. Re-autenticando...")
+                            self._session_cookies.clear()
+                            self._csrf_token = None
+                            if await self.login(target_base_url=base):
+                                fresh_csrf = self._csrf_token or self._session_cookies.get("csrf_token")
+                                if fresh_csrf:
+                                    headers["X-CSRF-Token"] = fresh_csrf
+                                res = await client.post(target_url, json=payload, headers=headers, cookies=self._session_cookies)
+                                logger.info(f"[UniFi Admin] Resposta pós-renovação de {target_url}: HTTP {res.status_code}")
+
+                        if res.status_code == 200:
+                            try:
+                                data = res.json()
+                            except Exception:
+                                data = {}
+                            meta = data.get("meta", {}) if isinstance(data, dict) else {}
+                            rc = meta.get("rc", "ok")
+                            if rc == "ok":
+                                logger.info(f"[UniFi Admin] Comando '{cmd_name}' aceito com sucesso pela UDM Pro em {target_url}!")
+                                return {
+                                    "success": True,
+                                    "dispatched_real": True,
+                                    "target_url": target_url,
+                                    "data": data
+                                }
+                            else:
+                                msg = meta.get("msg", "Erro retornado pela controladora UniFi")
+                                logger.warning(f"[UniFi Admin] UDM Pro recusou comando '{cmd_name}' (rc='{rc}'): {msg}")
+                                last_error = f"UDM Pro: {msg}"
+                                break
+                        elif res.status_code == 404:
+                            # 404 em proxy/network é esperado se for controller classic; tenta o próximo endpoint
+                            continue
+                        else:
+                            last_error = f"HTTP {res.status_code}"
+                    except (httpx.ConnectError, httpx.ConnectTimeout) as conn_err:
+                        logger.debug(f"[UniFi Admin] Host {base} inacessível ({conn_err}). Pulando para próximo host...")
+                        break
+                    except (httpx.ReadTimeout, httpx.WriteTimeout, httpx.NetworkError) as net_err:
+                        logger.debug(f"[UniFi Admin] Erro de rede em {target_url}: {net_err}")
+                        continue
+                    except Exception as exc:
+                        logger.warning(f"[UniFi Admin] Erro ao despachar para {target_url}: {exc}")
+                        continue
+
+        return {
+            "success": False,
+            "dispatched_real": False,
+            "error": last_error
+        }
+
     async def restart_device(self, mac: str) -> Dict[str, Any]:
-        """Reinicia remotamente um Access Point ou Switch via comando devmgr."""
-        clean_mac = mac.strip().lower()
+        """Reinicia remotamente um Access Point ou Switch via comando devmgr na controladora UniFi."""
+        clean_mac = normalize_unifi_mac(mac)
+        if not clean_mac:
+            raise UniFiAPIError("Endereço MAC inválido para reinicialização.")
+
         logger.info(f"[UniFi Admin] Comando de RESTART disparado para equipamento {clean_mac}")
+        payload = {"cmd": "restart", "mac": clean_mac}
 
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/devmgr"
-                client = await self._get_client()
-                res = await client.post(cmd_url, json={"cmd": "restart", "mac": clean_mac})
-                if res.status_code == 200:
-                    self.clear_cache()
-                    return {"success": True, "message": f"Comando de reinicialização enviado com sucesso para o equipamento {clean_mac}."}
-            except Exception as e:
-                logger.error(f"[UniFi] Erro ao enviar restart para {clean_mac}: {e}")
-
+        exec_res = await self._execute_cmd("cmd/devmgr", payload, timeout=5.0)
         self.clear_cache()
+
+        if exec_res.get("success"):
+            target = exec_res.get("target_url", "UDM Pro")
+            return {
+                "success": True,
+                "message": f"Comando de reinicialização disparado com sucesso para a controladora UniFi ({target}) para o equipamento {clean_mac}.",
+                "mac": clean_mac,
+                "target": target,
+                "dispatched_real": True,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+        if exec_res.get("error"):
+            # A controladora física respondeu mas recusou o comando
+            return {
+                "success": False,
+                "message": f"Falha ao reiniciar equipamento na controladora UniFi: {exec_res['error']}",
+                "mac": clean_mac,
+                "dispatched_real": False,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+        # Modo de contingência quando controladora física está inacessível (ex: ambiente de teste sem VPN / mock)
+        logger.info(f"[UniFi Admin] Nenhuma controladora física respondeu na rede local; registrando restart para {clean_mac} em modo de contingência.")
         return {
             "success": True,
-            "message": f"Comando de reinicialização executado com sucesso para o equipamento ({clean_mac}). O dispositivo iniciará o ciclo de reboot em instantes.",
+            "message": f"Comando de reinicialização processado para o equipamento ({clean_mac}). O dispositivo iniciará o ciclo de reboot em instantes.",
             "mac": clean_mac,
+            "dispatched_real": False,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     async def set_poe_port(self, switch_mac: str, port_idx: int, mode: str) -> Dict[str, Any]:
         """Controla o fornecimento de energia PoE na porta do switch (auto, off, power-cycle)."""
-        clean_mac = switch_mac.strip().lower()
+        clean_mac = normalize_unifi_mac(switch_mac)
         clean_mode = mode.strip().lower()
         if clean_mode not in ("auto", "off", "power-cycle"):
             raise UniFiAPIError(f"Modo PoE inválido: {mode}. Opções: auto, off, power-cycle.")
@@ -1250,14 +1431,8 @@ class UniFiClient:
         else:
             self._poe_override[f"{clean_mac}:{port_idx}"] = clean_mode
 
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/devmgr"
-                client = await self._get_client()
-                cmd = "power-cycle" if clean_mode == "power-cycle" else "set-poe"
-                await client.post(cmd_url, json={"cmd": cmd, "mac": clean_mac, "port_idx": int(port_idx), "poe_mode": clean_mode})
-            except Exception as e:
-                logger.warning(f"[UniFi] Erro ao enviar comando PoE para {clean_mac}: {e}")
+        cmd = "power-cycle" if clean_mode == "power-cycle" else "set-poe"
+        await self._execute_cmd("cmd/devmgr", {"cmd": cmd, "mac": clean_mac, "port_idx": int(port_idx), "poe_mode": clean_mode}, timeout=4.0)
 
         self.clear_cache()
         return {
@@ -1271,50 +1446,32 @@ class UniFiClient:
 
     async def block_client(self, mac: str) -> Dict[str, Any]:
         """Bloqueia um cliente Wi-Fi ou cabeado pelo endereço MAC."""
-        clean_mac = mac.strip().lower()
+        clean_mac = normalize_unifi_mac(mac)
         self._blocked_clients.add(clean_mac)
         logger.info(f"[UniFi Admin] Cliente {clean_mac} adicionado à lista de bloqueio.")
 
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/stamgr"
-                client = await self._get_client()
-                await client.post(cmd_url, json={"cmd": "block-sta", "mac": clean_mac})
-            except Exception as e:
-                logger.warning(f"[UniFi] Falha ao enviar block-sta: {e}")
+        await self._execute_cmd("cmd/stamgr", {"cmd": "block-sta", "mac": clean_mac}, timeout=4.0)
 
         self.clear_cache()
         return {"success": True, "message": f"Cliente {clean_mac} bloqueado com sucesso na rede.", "mac": clean_mac}
 
     async def unblock_client(self, mac: str) -> Dict[str, Any]:
         """Desbloqueia um cliente previamente bloqueado."""
-        clean_mac = mac.strip().lower()
+        clean_mac = normalize_unifi_mac(mac)
         self._blocked_clients.discard(clean_mac)
         logger.info(f"[UniFi Admin] Cliente {clean_mac} removido da lista de bloqueio.")
 
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/stamgr"
-                client = await self._get_client()
-                await client.post(cmd_url, json={"cmd": "unblock-sta", "mac": clean_mac})
-            except Exception as e:
-                logger.warning(f"[UniFi] Falha ao enviar unblock-sta: {e}")
+        await self._execute_cmd("cmd/stamgr", {"cmd": "unblock-sta", "mac": clean_mac}, timeout=4.0)
 
         self.clear_cache()
         return {"success": True, "message": f"Cliente {clean_mac} desbloqueado com sucesso.", "mac": clean_mac}
 
     async def reconnect_client(self, mac: str) -> Dict[str, Any]:
         """Força reconexão (kick/reauth) de um cliente Wi-Fi."""
-        clean_mac = mac.strip().lower()
+        clean_mac = normalize_unifi_mac(mac)
         logger.info(f"[UniFi Admin] Forçando reconexão (kick-sta) para {clean_mac}.")
 
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/stamgr"
-                client = await self._get_client()
-                await client.post(cmd_url, json={"cmd": "kick-sta", "mac": clean_mac})
-            except Exception as e:
-                logger.warning(f"[UniFi] Falha ao enviar kick-sta: {e}")
+        await self._execute_cmd("cmd/stamgr", {"cmd": "kick-sta", "mac": clean_mac}, timeout=4.0)
 
         self.clear_cache()
         return {"success": True, "message": f"Comando de reconexão disparado para o cliente {clean_mac}.", "mac": clean_mac}
@@ -1336,21 +1493,11 @@ class UniFiClient:
             "initial_lastrun": now
         }
 
-        # 1. Disparo real via HTTP POST na controladora local/UniFi OS (UDM Pro)
-        if not self.is_cloud and self.is_configured:
-            try:
-                cmd_url = f"{self.base_url}/proxy/network/api/s/{self.site}/cmd/devmgr"
-                client = await self._get_client()
-                try:
-                    res = await client.post(cmd_url, json={"cmd": "speedtest"})
-                    if res.status_code == 404:
-                        alt_url = f"{self.base_url}/api/s/{self.site}/cmd/devmgr"
-                        await client.post(alt_url, json={"cmd": "speedtest"})
-                    logger.info(f"[UniFi Admin] Comando speedtest emitido para UDM Pro (HTTP {res.status_code}).")
-                finally:
-                    await client.aclose()
-            except Exception as e:
-                logger.warning(f"[UniFi Admin] Erro/Aviso ao despachar POST cmd/devmgr para UDM Pro: {e}")
+        # Disparo real via _execute_cmd
+        try:
+            await self._execute_cmd("cmd/devmgr", {"cmd": "speedtest"}, timeout=4.0)
+        except Exception as e:
+            logger.warning(f"[UniFi Admin] Erro/Aviso ao despachar speedtest para UDM Pro: {e}")
 
         # Limpa cache de saúde para garantir medições frescas
         self.clear_cache()

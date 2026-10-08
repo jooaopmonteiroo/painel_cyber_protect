@@ -587,6 +587,8 @@ async def restart_unifi_device(mac: str = Path(..., min_length=12, max_length=20
         raise HTTPException(status_code=400, detail="Endereço MAC inválido.")
     result = await unifi.restart_device(clean_mac)
     auth.log_audit_event("unifi_restart_device", f"Reinicialização disparada para equipamento MAC {clean_mac}")
+    if not result.get("success", False):
+        raise HTTPException(status_code=400, detail=result.get("message", "Falha ao reiniciar equipamento UniFi."))
     return result
 
 @app.post("/api/unifi/devices/{mac}/ports/{port_idx}/poe", dependencies=[Depends(require_auth)])
