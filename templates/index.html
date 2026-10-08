@@ -166,6 +166,36 @@
             color: #F8FAFC !important;
         }
 
+        /* ================= ESTILOS DAS ABAS PRIMÁRIAS DE ECOSSISTEMA ================= */
+        .ecosystem-tab {
+            color: #64748B;
+            background-color: transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .ecosystem-tab:hover {
+            color: #1E2A4A;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+        .ecosystem-tab.active {
+            color: #1E2A4A;
+            background-color: #FFFFFF;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+        html.dark .ecosystem-tab {
+            color: #94A3B8;
+            background-color: transparent;
+        }
+        html.dark .ecosystem-tab:hover {
+            color: #F8FAFC;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        html.dark .ecosystem-tab.active {
+            color: #FFFFFF;
+            background-color: #1E2A4A;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            border: 1px solid #2A3B66;
+        }
+
         html.dark .border-slate-100, 
         html.dark .border-slate-200,
         html.dark .border-slate-300 {
@@ -414,11 +444,55 @@
     <!-- Main Content Workspace -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-        <!-- Navigation Tabs Bar -->
-        <div class="flex border-b border-slate-200 dark:border-slate-800 space-x-2 overflow-x-auto pb-1">
+        <!-- ================= SELETOR DE ECOSSISTEMAS PRINCIPAIS (TABS PRIMÁRIAS NO TOPO) ================= -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 bg-slate-100/90 dark:bg-[#141C33]/90 rounded-2xl border border-slate-200 dark:border-[#2A3B66] shadow-sm backdrop-blur-md">
+            
+            <!-- Switcher Primário: UniFi vs Acronis -->
+            <div class="flex items-center gap-1.5 p-1 bg-white/80 dark:bg-[#0E1528]/80 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-inner">
+                <!-- Aba Primária 1: UniFi Network -->
+                <button id="primary-tab-unifi" onclick="switchEcosystem('unifi')" class="ecosystem-tab active flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-lg font-black text-xs sm:text-sm transition-all cursor-pointer">
+                    <div class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="network" class="w-4 h-4"></i>
+                    </div>
+                    <span>UniFi Network</span>
+                    <span id="badgePrimaryUnifi" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">UDM Pro</span>
+                </button>
+
+                <!-- Aba Primária 2: Acronis Cyber Protect / Backup -->
+                <button id="primary-tab-acronis" onclick="switchEcosystem('acronis')" class="ecosystem-tab flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-lg font-black text-xs sm:text-sm transition-all cursor-pointer">
+                    <div class="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    </div>
+                    <span>Acronis Cyber Protect / Backup</span>
+                    <span id="badgePrimaryAcronis" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Backup Cloud</span>
+                </button>
+            </div>
+
+            <!-- Indicador Visual em Tempo Real + Status da Sincronização -->
+            <div class="flex items-center gap-2.5 self-end sm:self-center">
+                <div id="liveTelemetryBadge" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-xs transition-all">
+                    <span id="liveTelemetryDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="liveTelemetryStatus">Em tempo real</span>
+                    <span class="text-slate-400 font-normal font-mono text-[11px] hidden md:inline" id="liveTelemetryTime">Sincronizado</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner de Reconexão Graciosa (Não-Bloqueante) -->
+        <div id="reconnectionBanner" class="hidden p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs flex items-center justify-between shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+                <span class="font-bold">Comunicação temporariamente instável:</span>
+                <span class="text-slate-300" id="reconnectionBannerText">Tentando reconexão automática com a VPS/controladora. A interface permanece ativa.</span>
+            </div>
+            <span class="text-[11px] font-mono text-amber-200">Tentativa automática contínua</span>
+        </div>
+
+        <!-- Navigation Tabs Bar da Acronis (Sub-navegação contextual exclusiva do Ecossistema Acronis) -->
+        <div id="acronisNavTabs" class="hidden flex border-b border-slate-200 dark:border-slate-800 space-x-2 overflow-x-auto pb-1">
             <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                <span>Painel Geral (KPIs & Analytics)</span>
+                <span>Painel Geral & Backups</span>
             </button>
             <button onclick="switchTab('m365')" id="tab-m365" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
                 <i data-lucide="cloud" class="w-4 h-4"></i>
@@ -437,16 +511,11 @@
             </button>
             <button onclick="switchTab('devices')" id="tab-devices" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
                 <i data-lucide="monitor" class="w-4 h-4"></i>
-                <span>Dispositivos & Risco</span>
+                <span>Dispositivos & Agentes</span>
             </button>
             <button onclick="switchTab('policies')" id="tab-policies" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
                 <i data-lucide="shield-alert" class="w-4 h-4"></i>
                 <span>Planos de Segurança</span>
-            </button>
-            <button onclick="switchTab('network')" id="tab-network" class="tab-btn flex items-center space-x-2 px-5 py-2.5 rounded-t-xl font-bold text-sm cursor-pointer">
-                <i data-lucide="network" class="w-4 h-4 text-cyan-500"></i>
-                <span>Rede (UniFi)</span>
-                <span id="badgeUnifiDevicesCount" class="px-2 py-0.5 text-xs font-extrabold rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700">--</span>
             </button>
         </div>
 
@@ -2050,6 +2119,29 @@
                         <span>Latência do Link:</span>
                         <span id="speedtestLatencyVal" class="font-mono font-bold text-emerald-500">-- ms</span>
                     </div>
+
+                    <!-- Barra de Progresso e Temporizador do Teste Ativo (20-35s) -->
+                    <div id="speedtestProgressContainer" class="hidden space-y-2 pt-1 text-left">
+                        <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                            <span class="flex items-center gap-1.5 text-cyan-500 dark:text-cyan-400 font-bold">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                                <span id="speedtestProgressLabel">Executando teste na UDM Pro...</span>
+                            </span>
+                            <span id="speedtestCountdown" class="text-slate-700 dark:text-slate-300 font-bold">0s / ~30s</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                            <div id="speedtestProgressBar" class="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-500 rounded-full transition-all duration-300 w-0"></div>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Feedback de Timeout / Erro (45s) -->
+                    <div id="speedtestErrorBox" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 text-xs text-left">
+                        <div class="font-bold flex items-center gap-1.5">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                            <span id="speedtestErrorTitle">Tempo Limite Excedido (Timeout)</span>
+                        </div>
+                        <div id="speedtestErrorMsg" class="mt-1 text-[11px] text-red-600 dark:text-red-300">Tempo limite de 45 segundos excedido sem retorno da controladora.</div>
+                    </div>
                 </div>
                 <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
                     <span class="text-[11px] text-slate-400" id="speedtestTimestamp">Aguardando início</span>
@@ -2058,8 +2150,8 @@
                             Fechar
                         </button>
                         <button id="btnRunSpeedtest" onclick="executeSpeedtest()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-[#1E2A4A] font-black rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5">
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                            <span>Executar Teste</span>
+                            <i data-lucide="play" class="w-3.5 h-3.5" id="btnRunSpeedtestIcon"></i>
+                            <span id="btnRunSpeedtestText">Executar Teste</span>
                         </button>
                     </div>
                 </div>
@@ -3495,26 +3587,34 @@
             });
         }
 
-        function switchTab(tabName) {
-            currentTab = tabName;
+        let currentEcosystem = 'unifi';
+        let currentAcronisSubTab = 'overview';
 
-            ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies', 'network'].forEach(t => {
-                const sec = document.getElementById(`section-${t}`);
-                if (sec) sec.classList.add('hidden');
-                const btn = document.getElementById(`tab-${t}`);
-                if (btn) {
-                    btn.classList.remove('active');
-                }
-            });
+        function switchEcosystem(eco) {
+            currentEcosystem = eco;
 
-            const targetSec = document.getElementById(`section-${tabName}`);
-            if (targetSec) targetSec.classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            if (activeBtn) {
-                activeBtn.classList.add('active');
-            }
+            const btnUnifi = document.getElementById('primary-tab-unifi');
+            const btnAcronis = document.getElementById('primary-tab-acronis');
+            const acronisNavTabs = document.getElementById('acronisNavTabs');
+            const unifiSection = document.getElementById('section-network');
 
-            if (tabName === 'network') {
+            if (eco === 'unifi') {
+                if (btnUnifi) btnUnifi.classList.add('active');
+                if (btnAcronis) btnAcronis.classList.remove('active');
+
+                // Oculta abas de sub-navegação da Acronis
+                if (acronisNavTabs) acronisNavTabs.classList.add('hidden');
+
+                // Oculta todas as seções Acronis
+                ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies'].forEach(t => {
+                    const sec = document.getElementById(`section-${t}`);
+                    if (sec) sec.classList.add('hidden');
+                });
+
+                // Exibe seção UniFi Network exclusiva
+                if (unifiSection) unifiSection.classList.remove('hidden');
+
+                // Busca dados atualizados da UniFi e redimensiona gráficos sem destruir instâncias
                 fetchUnifiData();
                 setTimeout(() => {
                     if (chartUnifiClientsDist) chartUnifiClientsDist.resize();
@@ -3522,17 +3622,196 @@
                     if (chartUnifiWanTimeline) chartUnifiWanTimeline.resize();
                     if (chartUnifiSsidDist) chartUnifiSsidDist.resize();
                     if (chartUnifiVlanTraffic) chartUnifiVlanTraffic.resize();
-                }, 100);
+                }, 120);
+
+            } else {
+                // Ecossistema Acronis Cyber Protect
+                if (btnAcronis) btnAcronis.classList.add('active');
+                if (btnUnifi) btnUnifi.classList.remove('active');
+
+                // Exibe abas de sub-navegação da Acronis
+                if (acronisNavTabs) acronisNavTabs.classList.remove('hidden');
+
+                // Oculta seção UniFi
+                if (unifiSection) unifiSection.classList.add('hidden');
+
+                // Restaura a sub-aba ativa da Acronis preservando o estado
+                switchTab(currentAcronisSubTab || 'overview');
             }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function switchTab(tabName) {
+            if (tabName === 'network') {
+                switchEcosystem('unifi');
+                return;
+            }
+
+            currentAcronisSubTab = tabName;
+            currentTab = tabName;
+
+            // Se ainda não estava no ecossistema Acronis, ativa-o
+            if (currentEcosystem !== 'acronis') {
+                currentEcosystem = 'acronis';
+                const btnUnifi = document.getElementById('primary-tab-unifi');
+                const btnAcronis = document.getElementById('primary-tab-acronis');
+                const acronisNavTabs = document.getElementById('acronisNavTabs');
+                const unifiSection = document.getElementById('section-network');
+
+                if (btnAcronis) btnAcronis.classList.add('active');
+                if (btnUnifi) btnUnifi.classList.remove('active');
+                if (acronisNavTabs) acronisNavTabs.classList.remove('hidden');
+                if (unifiSection) unifiSection.classList.add('hidden');
+            }
+
+            ['overview', 'm365', 'url-filtering', 'alerts', 'devices', 'policies'].forEach(t => {
+                const sec = document.getElementById(`section-${t}`);
+                if (sec) sec.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.classList.remove('active');
+            });
+
+            const targetSec = document.getElementById(`section-${tabName}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Redimensiona gráficos Acronis se estiver na visão geral
+            if (tabName === 'overview') {
+                setTimeout(() => {
+                    [chartAlerts, chartPolicy, chartProtectionSuccessRate, chartStorageWorkload, chartRisk, chartOsDistribution, chartAlertThreatTimeline, chartVulnerabilitySeverity, chartUrlCategories, chartTopBlockedUrls].forEach(c => {
+                        if (c && typeof c.resize === 'function') c.resize();
+                    });
+                }, 120);
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ==========================================
+        // MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (5-10s)
+        // ==========================================
+        let realTimeEngineInterval = null;
+        let isRealTimePolling = false;
+
+        function updateLiveIndicator(isOnline, timestamp) {
+            const badge = document.getElementById('liveTelemetryBadge');
+            const dot = document.getElementById('liveTelemetryDot');
+            const statusText = document.getElementById('liveTelemetryStatus');
+            const timeText = document.getElementById('liveTelemetryTime');
+
+            if (!badge || !dot || !statusText || !timeText) return;
+
+            if (isOnline) {
+                badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-xs transition-all";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                statusText.textContent = "Em tempo real";
+                if (timestamp) {
+                    timeText.textContent = `Atualizado às ${timestamp.toLocaleTimeString('pt-BR')}`;
+                }
+            } else {
+                badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold shadow-xs transition-all";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+                statusText.textContent = "Reconectando...";
+                timeText.textContent = "Tentativa contínua";
+            }
+        }
+
+        function showReconnectionBanner(msg) {
+            const banner = document.getElementById('reconnectionBanner');
+            const textEl = document.getElementById('reconnectionBannerText');
+            if (banner) {
+                if (textEl && msg) textEl.textContent = msg;
+                banner.classList.remove('hidden');
+            }
+        }
+
+        function hideReconnectionBanner() {
+            const banner = document.getElementById('reconnectionBanner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        async function pollRealTimeTelemetry() {
+            if (isRealTimePolling) return;
+            isRealTimePolling = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/realtime/summary`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                hideReconnectionBanner();
+                updateLiveIndicator(true, new Date());
+
+                // Atualização dinâmica UniFi
+                if (data.unifi) {
+                    const u = data.unifi;
+                    const devOnlineEl = document.getElementById('unifiKpiDevicesOnline');
+                    if (devOnlineEl && u.online_devices !== undefined) {
+                        devOnlineEl.textContent = `${u.online_devices} / ${u.total_devices}`;
+                    }
+                    const clientsTotalEl = document.getElementById('unifiKpiClientsTotal');
+                    if (clientsTotalEl && u.clients_total !== undefined) {
+                        clientsTotalEl.textContent = u.clients_total;
+                    }
+                    const wifiEl = document.getElementById('unifiKpiClientsWifi');
+                    if (wifiEl && u.clients_wifi !== undefined) {
+                        wifiEl.textContent = `📶 ${u.clients_wifi} Wi-Fi`;
+                    }
+                    const wiredEl = document.getElementById('unifiKpiClientsWired');
+                    if (wiredEl && u.clients_wired !== undefined) {
+                        wiredEl.textContent = `🔌 ${u.clients_wired} Cabo`;
+                    }
+                    const latEl = document.getElementById('unifiKpiLatency');
+                    if (latEl && u.latency_ms !== undefined) {
+                        latEl.textContent = `${u.latency_ms} ms`;
+                    }
+                    const rxtxEl = document.getElementById('unifiKpiRxTx');
+                    if (rxtxEl && u.traffic_rx_formatted && u.traffic_tx_formatted) {
+                        rxtxEl.textContent = `↓ ${u.traffic_rx_formatted} | ↑ ${u.traffic_tx_formatted}`;
+                    }
+                    const badgeUni = document.getElementById('badgePrimaryUnifi');
+                    if (badgeUni && u.clients_total) {
+                        badgeUni.textContent = `${u.clients_total} Clientes`;
+                    }
+                }
+
+                // Atualização dinâmica Acronis
+                if (data.acronis) {
+                    const a = data.acronis;
+                    const badgeAcro = document.getElementById('badgePrimaryAcronis');
+                    if (badgeAcro) {
+                        badgeAcro.textContent = a.protected_agents ? `${a.protected_agents} Agentes` : 'Protegido';
+                    }
+                    const badgeCritAlerts = document.getElementById('badgeCriticalAlertsCount');
+                    if (badgeCritAlerts && a.critical_alerts > 0) {
+                        badgeCritAlerts.textContent = a.critical_alerts;
+                        badgeCritAlerts.classList.remove('hidden');
+                    }
+                }
+
+            } catch (err) {
+                console.warn("[Real-Time Polling] Falha transitória:", err);
+                updateLiveIndicator(false, null);
+                showReconnectionBanner("Comunicação temporariamente instável com a VPS/controladora. Tentando reconexão automática sem travar a interface.");
+            } finally {
+                isRealTimePolling = false;
+            }
+        }
+
+        function startRealTimeEngine() {
+            if (realTimeEngineInterval) clearInterval(realTimeEngineInterval);
+            pollRealTimeTelemetry();
+            realTimeEngineInterval = setInterval(pollRealTimeTelemetry, 7000);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
-            switchTab('overview');
+            switchEcosystem('unifi');
             lucide.createIcons();
             initCharts();
             initAutoRefresh();
             refreshDashboard();
+            startRealTimeEngine();
         });
 
 
@@ -6944,6 +7223,9 @@
             }
         }
 
+        let speedtestPollInterval = null;
+        let speedtestStartTime = null;
+
         function openSpeedtestModal() {
             const modal = document.getElementById('unifiSpeedtestModal');
             if (modal) modal.classList.remove('hidden');
@@ -6962,34 +7244,145 @@
             const latEl = document.getElementById('speedtestLatencyVal');
             const timeEl = document.getElementById('speedtestTimestamp');
             const btn = document.getElementById('btnRunSpeedtest');
+            const btnText = document.getElementById('btnRunSpeedtestText');
+            const btnIcon = document.getElementById('btnRunSpeedtestIcon');
+            const progContainer = document.getElementById('speedtestProgressContainer');
+            const progBar = document.getElementById('speedtestProgressBar');
+            const progCountdown = document.getElementById('speedtestCountdown');
+            const progLabel = document.getElementById('speedtestProgressLabel');
+            const errorBox = document.getElementById('speedtestErrorBox');
+            const errorMsg = document.getElementById('speedtestErrorMsg');
 
-            if (statusEl) statusEl.textContent = "Testando Throughput com a UDM Pro...";
+            if (errorBox) errorBox.classList.add('hidden');
+            if (progContainer) progContainer.classList.remove('hidden');
+            if (progBar) progBar.style.width = '5%';
+            if (progCountdown) progCountdown.textContent = '0s / ~30s';
+            if (progLabel) progLabel.textContent = 'Disparando POST cmd/devmgr na UDM Pro...';
+
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.textContent = 'Executando (0s)...';
+            if (btnIcon) {
+                btnIcon.setAttribute('data-lucide', 'loader-2');
+                btnIcon.classList.add('animate-spin');
+            }
+
+            if (statusEl) statusEl.textContent = "Disparando medição nos links WAN da UDM Pro...";
             if (downEl) downEl.textContent = "...";
             if (upEl) upEl.textContent = "...";
             if (latEl) latEl.textContent = "...";
-            if (btn) btn.disabled = true;
+            if (timeEl) timeEl.textContent = "Comando POST enviado, aguardando execução...";
+            if (window.lucide) lucide.createIcons();
+
+            speedtestStartTime = Date.now();
 
             try {
+                // 1. Disparo real (POST) para a controladora
                 const res = await fetch(`${API_BASE}/api/unifi/speedtest/run`, { method: 'POST' });
                 const data = await res.json();
-                if (res.ok && data.success) {
-                    const st = data.speedtest || {};
-                    if (downEl) downEl.textContent = st.download_mbps || 842.5;
-                    if (upEl) upEl.textContent = st.upload_mbps || 460.2;
-                    if (latEl) latEl.textContent = `${st.latency_ms || 9.2} ms`;
-                    if (statusEl) statusEl.textContent = "Teste Concluído com Sucesso!";
-                    if (timeEl) timeEl.textContent = `Executado em: ${st.timestamp || new Date().toLocaleTimeString('pt-BR')}`;
-                    showRefreshToast("Speedtest WAN da UDM Pro concluído!");
-                } else {
-                    if (statusEl) statusEl.textContent = "Falha no Teste";
-                    showRefreshToast("Falha ao executar Speedtest.");
+                if (!res.ok || !data.success) {
+                    throw new Error(data.detail || data.message || "Falha ao emitir comando speedtest");
                 }
+
+                if (progLabel) progLabel.textContent = 'Medindo throughput WAN na UDM Pro...';
+                if (statusEl) statusEl.textContent = "Medição ativa nos links de internet (20 a 35s)...";
+                showRefreshToast("Speedtest WAN iniciado na UDM Pro (aguarde ~25-35s)...");
+
+                // 2. Loop de Acompanhamento (Polling periódico de 2 segundos)
+                if (speedtestPollInterval) clearInterval(speedtestPollInterval);
+
+                speedtestPollInterval = setInterval(async () => {
+                    const elapsed = Math.round((Date.now() - speedtestStartTime) / 1000);
+                    
+                    // Atualiza contadores visuais
+                    const progress = Math.min(95, Math.round((elapsed / 30) * 100));
+                    if (progBar) progBar.style.width = `${progress}%`;
+                    if (progCountdown) progCountdown.textContent = `${elapsed}s / ~30s`;
+                    if (btnText) btnText.textContent = `Executando (${elapsed}s)...`;
+
+                    // 3. Tratamento de Timeout rígido no frontend: 45 segundos
+                    if (elapsed >= 45) {
+                        clearInterval(speedtestPollInterval);
+                        speedtestPollInterval = null;
+                        handleSpeedtestTimeout("Limite máximo de 45 segundos atingido sem retorno definitivo da controladora UDM Pro.");
+                        return;
+                    }
+
+                    // Consulta endpoint de status
+                    try {
+                        const statRes = await fetch(`${API_BASE}/api/unifi/speedtest/status`);
+                        if (!statRes.ok) return;
+                        const statData = await statRes.json();
+
+                        if (statData.status === 'timeout') {
+                            clearInterval(speedtestPollInterval);
+                            speedtestPollInterval = null;
+                            handleSpeedtestTimeout(statData.error || "Timeout da controladora");
+                            return;
+                        }
+
+                        if (statData.status === 'completed' && statData.speedtest) {
+                            clearInterval(speedtestPollInterval);
+                            speedtestPollInterval = null;
+                            handleSpeedtestCompleted(statData.speedtest);
+                        }
+                    } catch (pollErr) {
+                        console.warn("[Speedtest Polling] Oscilação transitória no poll:", pollErr);
+                    }
+                }, 2000);
+
             } catch (err) {
-                if (statusEl) statusEl.textContent = "Erro de Conexão";
-                showRefreshToast("Erro de conexão no Speedtest.");
-            } finally {
-                if (btn) btn.disabled = false;
+                if (speedtestPollInterval) clearInterval(speedtestPollInterval);
+                speedtestPollInterval = null;
+                handleSpeedtestTimeout(err.message || "Erro de conexão ao iniciar teste de velocidade.");
             }
+        }
+
+        function handleSpeedtestCompleted(st) {
+            const statusEl = document.getElementById('speedtestStatusLabel');
+            const downEl = document.getElementById('speedtestDownloadVal');
+            const upEl = document.getElementById('speedtestUploadVal');
+            const latEl = document.getElementById('speedtestLatencyVal');
+            const timeEl = document.getElementById('speedtestTimestamp');
+            const progBar = document.getElementById('speedtestProgressBar');
+            const progCountdown = document.getElementById('speedtestCountdown');
+            const progLabel = document.getElementById('speedtestProgressLabel');
+
+            if (progBar) progBar.style.width = '100%';
+            if (progCountdown) progCountdown.textContent = '100% Concluído';
+            if (progLabel) progLabel.textContent = 'Medição concluída com sucesso!';
+            if (downEl) downEl.textContent = st.download_mbps || '--';
+            if (upEl) upEl.textContent = st.upload_mbps || '--';
+            if (latEl) latEl.textContent = `${st.latency_ms || '--'} ms`;
+            if (statusEl) statusEl.textContent = "Speedtest Concluído com Sucesso!";
+            if (timeEl) timeEl.textContent = `Executado em: ${new Date().toLocaleTimeString('pt-BR')} (${st.elapsed_seconds || ''}s)`;
+
+            showRefreshToast(`Speedtest UDM Pro: ↓ ${st.download_mbps} Mbps | ↑ ${st.upload_mbps} Mbps (${st.latency_ms} ms)!`);
+            resetSpeedtestButton("Executar Novamente");
+        }
+
+        function handleSpeedtestTimeout(msg) {
+            const statusEl = document.getElementById('speedtestStatusLabel');
+            const errorBox = document.getElementById('speedtestErrorBox');
+            const errorMsg = document.getElementById('speedtestErrorMsg');
+
+            if (statusEl) statusEl.textContent = "Tempo Limite Excedido (Timeout)";
+            if (errorBox) errorBox.classList.remove('hidden');
+            if (errorMsg) errorMsg.textContent = msg || "A UDM Pro não retornou os resultados da medição em 45 segundos.";
+            showRefreshToast("Timeout de 45s no Speedtest da UDM Pro.");
+            resetSpeedtestButton("Tentar Novamente");
+        }
+
+        function resetSpeedtestButton(label = "Executar Teste") {
+            const btn = document.getElementById('btnRunSpeedtest');
+            const btnText = document.getElementById('btnRunSpeedtestText');
+            const btnIcon = document.getElementById('btnRunSpeedtestIcon');
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.textContent = label;
+            if (btnIcon) {
+                btnIcon.setAttribute('data-lucide', 'play');
+                btnIcon.classList.remove('animate-spin');
+            }
+            if (window.lucide) lucide.createIcons();
         }
 
         function escapeHtml(str) {
