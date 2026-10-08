@@ -107,12 +107,12 @@ class UniFiClient:
     def _get_candidate_bases(self) -> List[str]:
         """
         Retorna a lista priorizada de endpoints candidatos para a controladora UniFi.
-        Prioriza o IP do túnel OpenVPN da UDM Pro (https://192.168.99.1).
+        Prioriza o IP real da UDM Pro acessível via OpenVPN (https://192.168.15.1).
         """
         candidates: List[str] = []
 
         # 1. IP direto da UDM Pro via VPN OpenVPN ou variável de ambiente
-        local_url = getattr(Config, "UNIFI_LOCAL_URL", "https://192.168.99.1")
+        local_url = getattr(Config, "UNIFI_LOCAL_URL", "https://192.168.15.1")
         if local_url and local_url.strip():
             c = local_url.strip().rstrip("/")
             if c not in candidates:
@@ -124,7 +124,7 @@ class UniFiClient:
                 candidates.append(self.base_url)
 
         # 3. IPs locais conhecidos da UDM Pro na rede interna / túnel VPN
-        for ip in ["https://192.168.99.1", "https://192.168.15.1", "https://192.168.14.1"]:
+        for ip in ["https://192.168.15.1", "https://192.168.14.1"]:
             if ip not in candidates:
                 candidates.append(ip)
 
@@ -642,6 +642,14 @@ class UniFiClient:
         try:
             raw_devices = await self._request("stat/device")
             if not isinstance(raw_devices, list) or len(raw_devices) == 0:
+                if self.api_key:
+                    try:
+                        cloud_devs = await self._get_cloud_devices()
+                        if cloud_devs:
+                            self._save_to_cache("devices", cloud_devs)
+                            return cloud_devs
+                    except Exception:
+                        pass
                 mock = self._get_mock_devices()
                 self._save_to_cache("devices", mock)
                 return mock
@@ -705,7 +713,15 @@ class UniFiClient:
             return devices
 
         except Exception as e:
-            logger.warning(f"[UniFi] Falha ao coletar dispositivos reais ({e}). Utilizando infraestrutura de contingência.")
+            logger.warning(f"[UniFi] Falha ao coletar dispositivos reais ({e}). Utilizando fallback.")
+            if self.api_key:
+                try:
+                    cloud_devs = await self._get_cloud_devices()
+                    if cloud_devs:
+                        self._save_to_cache("devices", cloud_devs)
+                        return cloud_devs
+                except Exception as ce:
+                    logger.debug(f"[UniFi] Falha no fallback cloud de dispositivos: {ce}")
             mock = self._get_mock_devices()
             self._save_to_cache("devices", mock)
             return mock
@@ -735,6 +751,14 @@ class UniFiClient:
         try:
             raw_clients = await self._request("stat/sta")
             if not isinstance(raw_clients, list) or len(raw_clients) == 0:
+                if self.api_key:
+                    try:
+                        cloud_clients = await self._get_cloud_clients()
+                        if cloud_clients:
+                            self._save_to_cache("clients", cloud_clients)
+                            return cloud_clients
+                    except Exception:
+                        pass
                 mock = self._get_mock_clients()
                 self._save_to_cache("clients", mock)
                 return mock
@@ -811,7 +835,15 @@ class UniFiClient:
             return clients
 
         except Exception as e:
-            logger.warning(f"[UniFi] Falha ao coletar clientes reais ({e}). Utilizando infraestrutura de contingência.")
+            logger.warning(f"[UniFi] Falha ao coletar clientes reais ({e}). Utilizando fallback.")
+            if self.api_key:
+                try:
+                    cloud_clients = await self._get_cloud_clients()
+                    if cloud_clients:
+                        self._save_to_cache("clients", cloud_clients)
+                        return cloud_clients
+                except Exception as ce:
+                    logger.debug(f"[UniFi] Falha no fallback cloud de clientes: {ce}")
             mock = self._get_mock_clients()
             self._save_to_cache("clients", mock)
             return mock
@@ -867,12 +899,28 @@ class UniFiClient:
                 self._save_to_cache("health", result)
                 return result
 
+            if self.api_key:
+                try:
+                    cloud_health = await self._get_cloud_health()
+                    if cloud_health:
+                        self._save_to_cache("health", cloud_health)
+                        return cloud_health
+                except Exception:
+                    pass
             mock = self._get_mock_health()
             self._save_to_cache("health", mock)
             return mock
 
         except Exception as e:
             logger.warning(f"[UniFi] Falha ao coletar health ({e}). Utilizando fallback.")
+            if self.api_key:
+                try:
+                    cloud_health = await self._get_cloud_health()
+                    if cloud_health:
+                        self._save_to_cache("health", cloud_health)
+                        return cloud_health
+                except Exception as ce:
+                    logger.debug(f"[UniFi] Falha no fallback cloud de health: {ce}")
             mock = self._get_mock_health()
             self._save_to_cache("health", mock)
             return mock
