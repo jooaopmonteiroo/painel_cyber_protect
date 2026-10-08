@@ -43,8 +43,8 @@ class Config:
 
     UNIFI_CONTROLLER_URL = UNIFI_HOST
     UNIFI_SITE = os.getenv("UNIFI_SITE", "default")
-    UNIFI_USERNAME = os.getenv("UNIFI_USERNAME", "")
-    UNIFI_PASSWORD = os.getenv("UNIFI_PASSWORD", "")
+    UNIFI_USERNAME = os.getenv("UNIFI_USERNAME") or os.getenv("UNIFI_USER") or "jp.monteiro"
+    UNIFI_PASSWORD = os.getenv("UNIFI_PASSWORD") or os.getenv("UNIFI_PASS") or "41441130JOao@@"
     UNIFI_API_KEY = os.getenv("UNIFI_API_KEY", "")
     # Autoassinado na UDM local: verify=False (rejectUnauthorized: false) por padrão
     UNIFI_VERIFY_SSL = os.getenv("UNIFI_VERIFY_SSL", "false").lower() in ("true", "1", "yes")
