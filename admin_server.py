@@ -71,6 +71,9 @@ class CreateUserSchema(BaseModel):
 class ResetPasswordSchema(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=100)
 
+class UpdateRoleSchema(BaseModel):
+    role: str = Field(..., min_length=3, max_length=20)
+
 # ==================== ROTAS DE INTERFACE ====================
 
 @app.head("/")
@@ -185,6 +188,20 @@ async def block_user_api(user_id: int, request: Request):
 async def reset_password_api(user_id: int, data: ResetPasswordSchema, request: Request):
     client_ip = request.client.host if request.client else "unknown"
     success, msg = auth.reset_password(user_id, data.new_password, admin_actor="master_admin", ip_address=client_ip)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "message": msg}
+
+@app.post("/api/admin/users/{user_id}/role", dependencies=[Depends(require_master_auth)])
+@app.put("/api/admin/users/{user_id}/role", dependencies=[Depends(require_master_auth)])
+async def update_user_role_api(user_id: int, data: UpdateRoleSchema, request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    success, msg = auth.update_user_role(
+        user_id_or_username=user_id,
+        new_role=data.role,
+        admin_actor="master_admin",
+        ip_address=client_ip
+    )
     if not success:
         raise HTTPException(status_code=400, detail=msg)
     return {"success": True, "message": msg}

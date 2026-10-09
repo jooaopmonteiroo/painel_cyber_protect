@@ -362,8 +362,78 @@
                            class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 font-mono">
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeResetModal()" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-bold">Cancelar</button>
-                    <button type="submit" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold">Salvar Nova Senha</button>
+                    <button type="button" onclick="closeResetModal()" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-bold cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold cursor-pointer">Salvar Nova Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Alterar Papel (Role) do Utilizador -->
+    <div id="modalChangeRole" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+        <div class="admin-card w-full max-w-md p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-2">
+                    <i data-lucide="shield" class="w-4 h-4 text-blue-400"></i>
+                    Alterar Papel (Role) do Utilizador
+                </h3>
+                <button onclick="closeChangeRoleModal()" class="text-slate-400 hover:text-white cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div>
+                <p class="text-xs text-slate-300">Utilizador: <strong id="roleTargetName" class="text-white"></strong> (<span id="roleTargetUsername" class="font-mono text-cyan-400"></span>)</p>
+                <p class="text-[11px] text-slate-400 mt-1">Selecione o novo nível de privilégio e escopo de permissões:</p>
+            </div>
+
+            <form onsubmit="handleChangeRoleSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="roleTargetId">
+                
+                <div class="space-y-2">
+                    <!-- Opção: ADMIN -->
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 hover:border-blue-500/50 bg-slate-900/60 hover:bg-blue-950/20 cursor-pointer transition-all">
+                        <input type="radio" name="modalRoleRadio" value="admin" class="mt-1 text-blue-500 focus:ring-0">
+                        <div>
+                            <div class="font-extrabold text-blue-300 flex items-center gap-1.5">
+                                <span>ADMIN</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-950 text-blue-400 border border-blue-800">Acesso Total</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Acesso administrativo pleno: gestão de utilizadores, reinício de equipamentos, configurações e auditoria.</p>
+                        </div>
+                    </label>
+
+                    <!-- Opção: OPERATOR -->
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 hover:border-cyan-500/50 bg-slate-900/60 hover:bg-cyan-950/20 cursor-pointer transition-all">
+                        <input type="radio" name="modalRoleRadio" value="operator" class="mt-1 text-cyan-500 focus:ring-0">
+                        <div>
+                            <div class="font-extrabold text-cyan-300 flex items-center gap-1.5">
+                                <span>OPERATOR</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-cyan-950 text-cyan-400 border border-cyan-800">Operação Completa</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Operação completa da rede: monitorização UniFi, bloqueio e reconexão de clientes, backup e status.</p>
+                        </div>
+                    </label>
+
+                    <!-- Opção: VIEWER -->
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 hover:border-slate-600 bg-slate-900/60 hover:bg-slate-800/40 cursor-pointer transition-all">
+                        <input type="radio" name="modalRoleRadio" value="viewer" class="mt-1 text-slate-400 focus:ring-0">
+                        <div>
+                            <div class="font-extrabold text-slate-300 flex items-center gap-1.5">
+                                <span>VIEWER</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-slate-800 text-slate-400 border border-slate-700">Somente Leitura</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Apenas visualização de dashboards, gráficos e telemetria (sem permissão de ações operacionais).</p>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeChangeRoleModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg shadow-blue-600/20 flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Atualizar Papel</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -430,9 +500,25 @@
                          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> PENDENTE DE LIBERAÇÃO
                        </span>`;
 
-                const roleBadge = u.role === 'admin'
-                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-950 text-blue-300 border border-blue-800">ADMIN</span>`
-                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">${u.role.toUpperCase()}</span>`;
+                const currentRole = (u.role || 'operator').toLowerCase();
+                const roleSelector = `
+                    <div class="inline-flex items-center">
+                        <select onchange="updateUserRoleDirect(${u.id}, '${escapeHtml(u.username)}', this.value, this)" 
+                                data-current-role="${currentRole}"
+                                title="Alterar papel/role deste perfil diretamente"
+                                class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer focus:outline-none focus:ring-1 ${
+                                    currentRole === 'admin' 
+                                        ? 'bg-blue-950/90 text-blue-300 border-blue-500/50 hover:border-blue-400 focus:ring-blue-400' 
+                                        : currentRole === 'operator'
+                                        ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500/50 hover:border-cyan-400 focus:ring-cyan-400'
+                                        : 'bg-slate-800/90 text-slate-300 border-slate-600 hover:border-slate-500 focus:ring-slate-400'
+                                }">
+                            <option value="admin" class="bg-slate-900 text-blue-300 font-bold" ${currentRole === 'admin' ? 'selected' : ''}>ADMIN</option>
+                            <option value="operator" class="bg-slate-900 text-cyan-300 font-bold" ${currentRole === 'operator' ? 'selected' : ''}>OPERATOR</option>
+                            <option value="viewer" class="bg-slate-900 text-slate-300 font-bold" ${currentRole === 'viewer' ? 'selected' : ''}>VIEWER</option>
+                        </select>
+                    </div>
+                `;
 
                 return `
                     <tr class="hover:bg-slate-900/60 transition-colors">
@@ -441,7 +527,7 @@
                             <div class="text-[11px] text-slate-400 font-mono">@${escapeHtml(u.username)}</div>
                         </td>
                         <td class="p-4 font-mono text-slate-300">${escapeHtml(u.email)}</td>
-                        <td class="p-4">${roleBadge}</td>
+                        <td class="p-4">${roleSelector}</td>
                         <td class="p-4">${statusBadge}</td>
                         <td class="p-4 text-slate-400 text-[11px]">${u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '--'}</td>
                         <td class="p-4 text-slate-400 text-[11px]">${u.last_login || 'Nunca acessou'}</td>
@@ -460,6 +546,11 @@
                                         <span>Bloquear</span>
                                     </button>
                                 `}
+
+                                <button onclick="openChangeRoleModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.full_name)}', '${currentRole}')" title="Alterar Papel / Permissões (Role)" 
+                                        class="p-1.5 bg-slate-800 hover:bg-blue-950/80 hover:text-blue-300 text-slate-300 rounded-lg transition-all cursor-pointer border border-transparent hover:border-blue-500/30">
+                                    <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                                </button>
 
                                 <button onclick="openResetModal(${u.id}, '${escapeHtml(u.username)}')" title="Redefinir Senha" 
                                         class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all cursor-pointer">
@@ -614,6 +705,101 @@
                 }
             } catch (err) {
                 showToast(err.message, true);
+            }
+        }
+
+        function openChangeRoleModal(id, username, fullName, currentRole) {
+            const user = globalUsers.find(u => u.id === id);
+            const targetName = (user && user.full_name) || fullName || (user && user.username) || username || 'Utilizador';
+            const targetUsername = (user && user.username) || username || '';
+            const targetRole = ((user && user.role) || currentRole || 'operator').toLowerCase();
+
+            document.getElementById('roleTargetId').value = id;
+            document.getElementById('roleTargetName').textContent = targetName;
+            document.getElementById('roleTargetUsername').textContent = targetUsername ? '@' + targetUsername : '';
+            
+            const radios = document.getElementsByName('modalRoleRadio');
+            for (const radio of radios) {
+                radio.checked = (radio.value === targetRole);
+            }
+            
+            document.getElementById('modalChangeRole').classList.remove('hidden');
+        }
+
+        function closeChangeRoleModal() {
+            document.getElementById('modalChangeRole').classList.add('hidden');
+        }
+
+        async function handleChangeRoleSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('roleTargetId').value;
+            const selectedRadio = document.querySelector('input[name="modalRoleRadio"]:checked');
+            if (!selectedRadio) {
+                showToast('Selecione um papel para o utilizador.', true);
+                return;
+            }
+            const newRole = selectedRadio.value;
+
+            try {
+                const res = await fetch(`/api/admin/users/${id}/role`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    showToast(d.message || 'Papel do utilizador alterado com sucesso!');
+                    closeChangeRoleModal();
+                    loadUsers();
+                    loadAuditLogs();
+                } else {
+                    showToast(d.detail || d.message || 'Erro ao alterar papel', true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function updateUserRoleDirect(id, username, newRole, selectElem) {
+            if (typeof newRole === 'object' && selectElem === undefined) {
+                selectElem = newRole;
+                newRole = username;
+                const u = globalUsers.find(x => x.id === id);
+                username = u ? u.username : 'utilizador';
+            }
+            const previousRole = selectElem.getAttribute('data-current-role') || 'operator';
+            if (newRole === previousRole) return;
+
+            const roleLabels = { 'admin': 'ADMIN', 'operator': 'OPERATOR', 'viewer': 'VIEWER' };
+            const prettyRole = roleLabels[newRole] || newRole.toUpperCase();
+
+            if (!confirm(`Deseja alterar o papel do utilizador '${username}' para ${prettyRole}?`)) {
+                selectElem.value = previousRole;
+                return;
+            }
+
+            try {
+                selectElem.disabled = true;
+                const res = await fetch(`/api/admin/users/${id}/role`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    showToast(d.message || `Papel de '${username}' alterado para ${prettyRole}!`);
+                    selectElem.setAttribute('data-current-role', newRole);
+                    loadUsers();
+                    loadAuditLogs();
+                } else {
+                    showToast(d.detail || d.message || 'Erro ao alterar papel', true);
+                    selectElem.value = previousRole;
+                }
+            } catch (err) {
+                showToast(err.message, true);
+                selectElem.value = previousRole;
+            } finally {
+                selectElem.disabled = false;
             }
         }
 

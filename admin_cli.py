@@ -131,6 +131,24 @@ def cmd_delete(args):
     else:
         print(f"{RED}[✗] ERRO:{RESET} {msg}")
 
+def cmd_role(args):
+    target = args.username_or_id
+    new_role = args.new_role
+    if not new_role:
+        print(f"{BOLD}Escolha o novo papel:{RESET}")
+        print("  1. admin (Administrador Pleno)")
+        print("  2. operator (Operador de Sistema)")
+        print("  3. viewer (Visualizador / Somente Leitura)")
+        r_choice = input("Opção (1-3): ").strip()
+        role_map = {"1": "admin", "2": "operator", "3": "viewer"}
+        new_role = role_map.get(r_choice, "operator")
+
+    success, msg = auth.update_user_role(target, new_role, admin_actor="admin_cli", ip_address="127.0.0.1")
+    if success:
+        print(f"{GREEN}[✓] SUCESSO:{RESET} {msg}")
+    else:
+        print(f"{RED}[✗] ERRO:{RESET} {msg}")
+
 def cmd_audit(args):
     limit = args.limit or 25
     logs = auth.get_audit_logs(limit=limit)
@@ -151,10 +169,11 @@ def cmd_interactive():
         print("  4. Criar Novo Utilizador")
         print("  5. Redefinir Senha de Utilizador")
         print("  6. Excluir Utilizador")
-        print("  7. Ver Logs de Auditoria de Acesso")
+        print("  7. Alterar Papel (Role) de Utilizador")
+        print("  8. Ver Logs de Auditoria de Acesso")
         print("  0. Sair")
 
-        choice = input(f"\n{BOLD}Escolha uma opção (0-7): {RESET}").strip()
+        choice = input(f"\n{BOLD}Escolha uma opção (0-8): {RESET}").strip()
 
         if choice == "1":
             cmd_list()
@@ -200,6 +219,14 @@ def cmd_interactive():
                 d.yes = False
                 cmd_delete(d)
         elif choice == "7":
+            user_input = input("Informe o Nome de Utilizador ou ID para alterar o papel: ").strip()
+            if user_input:
+                class Dummy: pass
+                d = Dummy()
+                d.username_or_id = user_input
+                d.new_role = None
+                cmd_role(d)
+        elif choice == "8":
             class Dummy: pass
             d = Dummy()
             d.limit = 30
@@ -241,6 +268,12 @@ def main():
     p_crt.add_argument("--role", "-r", choices=["admin", "operator", "viewer"], default="operator", help="Papel")
     p_crt.add_argument("--active", "-a", action="store_true", help="Se definido, o utilizador já nasce liberado")
     p_crt.set_defaults(func=cmd_create)
+
+    # role
+    p_rol = subparsers.add_parser("role", help="Altera o papel (role) de um utilizador cadastrado")
+    p_rol.add_argument("username_or_id", help="Nome de utilizador ou ID numérico")
+    p_rol.add_argument("new_role", choices=["admin", "operator", "viewer"], help="Novo papel (admin, operator, viewer)")
+    p_rol.set_defaults(func=cmd_role)
 
     # reset-pwd
     p_rst = subparsers.add_parser("reset-pwd", help="Redefine a senha de um utilizador")

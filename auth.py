@@ -372,6 +372,52 @@ def block_user(user_id_or_username: Any, admin_actor: Optional[str] = None, ip_a
     finally:
         conn.close()
 
+def update_user_role(
+    user_id_or_username: Any,
+    new_role: str,
+    admin_actor: Optional[str] = None,
+    ip_address: Optional[str] = None
+) -> Tuple[bool, str]:
+    """Altera o papel (role) de um utilizador cadastrado (admin, operator, viewer)."""
+    new_role = (new_role or "").strip().lower()
+    valid_roles = ("admin", "operator", "viewer")
+    if new_role not in valid_roles:
+        return False, f"Papel inválido '{new_role}'. Opções permitidas: {', '.join(r.upper() for r in valid_roles)}."
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        if isinstance(user_id_or_username, int) or str(user_id_or_username).isdigit():
+            cursor.execute("SELECT id, username, role FROM users WHERE id = ?", (int(user_id_or_username),))
+        else:
+            cursor.execute("SELECT id, username, role FROM users WHERE username = ?", (str(user_id_or_username).lower(),))
+        row = cursor.fetchone()
+        if not row:
+            return False, "Utilizador não encontrado."
+
+        user_id = row["id"]
+        username = row["username"]
+        old_role = (row["role"] or "").lower()
+
+        if old_role == new_role:
+            return True, f"O utilizador '{username}' já possui o papel '{new_role.upper()}'."
+
+        cursor.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
+        log_audit(
+            cursor,
+            user_id,
+            username,
+            "user_role_updated",
+            ip_address,
+            f"Papel do utilizador '{username}' alterado de '{old_role.upper()}' para '{new_role.upper()}' pelo administrador '{admin_actor or 'mestre'}'."
+        )
+        conn.commit()
+        return True, f"Papel do utilizador '{username}' alterado com sucesso para {new_role.upper()}."
+    except Exception as e:
+        return False, f"Erro ao alterar papel: {str(e)}"
+    finally:
+        conn.close()
+
 def reset_password(user_id_or_username: Any, new_password: str, admin_actor: Optional[str] = None, ip_address: Optional[str] = None) -> Tuple[bool, str]:
     """Redefine a senha de um utilizador e encerra sessões anteriores."""
     if not new_password or len(new_password) < 6:
