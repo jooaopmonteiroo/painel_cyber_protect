@@ -1,4 +1,4 @@
-# 🛡️ Painel de Monitoramento Acronis Cyber Protect Cloud
+# 🛡️ Painel de Monitoramento  Cyber Protect Cloud
 
 Uma aplicação web moderna e responsiva em **Python (FastAPI)** com frontend em **Tailwind CSS**, **Chart.js** e **Lucide Icons** para monitoramento centralizado de alertas, dispositivos, status de risco e planos de proteção gerenciados pela API do Acronis Cyber Protect Cloud.
 
