@@ -2130,18 +2130,18 @@
 
                 <!-- TABELA 1: EQUIPAMENTOS UNIFI (INFRA) -->
                 <div id="unifiTableDevicesWrapper" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
+                    <table class="w-full text-left text-xs border-collapse min-w-[950px]">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                                <th class="py-3 px-3">Equipamento / Nome</th>
-                                <th class="py-3 px-3">Tipo & Modelo</th>
-                                <th class="py-3 px-3">Endereço IP & MAC</th>
-                                <th class="py-3 px-3 text-center">Status</th>
-                                <th class="py-3 px-3 text-center">Clientes / Portas</th>
-                                <th class="py-3 px-3">Firmware</th>
-                                <th class="py-3 px-3">Uptime</th>
-                                <th class="py-3 px-3 text-center">CPU / Memória</th>
-                                <th class="py-3 px-3 text-center">Ações</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Equipamento / Nome</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Tipo & Modelo</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Endereço IP & MAC</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Status</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Clientes / Portas</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Firmware</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Uptime</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">CPU / Memória</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="unifiDevicesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2152,18 +2152,18 @@
 
                 <!-- TABELA 2: CLIENTES CONECTADOS -->
                 <div id="unifiTableClientsWrapper" class="hidden overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
+                    <table class="w-full text-left text-xs border-collapse min-w-[1050px]">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                                <th class="py-3 px-3">Dispositivo / Hostname</th>
-                                <th class="py-3 px-3">Endereço IP & MAC</th>
-                                <th class="py-3 px-3 text-center">Conexão</th>
-                                <th class="py-3 px-3">Rede / SSID</th>
-                                <th class="py-3 px-3">Ponto de Conexão</th>
-                                <th class="py-3 px-3 text-center">Sinal Wi-Fi</th>
-                                <th class="py-3 px-3">Tráfego Total (Rx / Tx)</th>
-                                <th class="py-3 px-3">Uptime</th>
-                                <th class="py-3 px-3 text-center">Ações</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Dispositivo / Hostname</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Endereço IP & MAC</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Conexão</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Rede / SSID</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Ponto de Conexão</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Sinal Wi-Fi</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Tráfego Total (Rx / Tx)</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Uptime</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="unifiClientsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2174,17 +2174,17 @@
 
                 <!-- TABELA 3: VLANS & SUB-REDES LOCAIS (NETWORKCONF) -->
                 <div id="unifiTableVlansWrapper" class="hidden overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
+                    <table class="w-full text-left text-xs border-collapse min-w-[1050px]">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                                <th class="py-3 px-3">Nome da Rede / Propósito</th>
-                                <th class="py-3 px-3 text-center">ID da VLAN (Tag)</th>
-                                <th class="py-3 px-3">Sub-rede & Máscara (CIDR)</th>
-                                <th class="py-3 px-3">Gateway / IP da Consola</th>
-                                <th class="py-3 px-3">Intervalo de DHCP (Pool)</th>
-                                <th class="py-3 px-3 text-center">Clientes Ativos</th>
-                                <th class="py-3 px-3 text-center">Isolamento (Guest)</th>
-                                <th class="py-3 px-3 text-center">Estado</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Nome da Rede / Propósito</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">ID da VLAN (Tag)</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Sub-rede & Máscara (CIDR)</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Gateway / IP da Consola</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Intervalo de DHCP (Pool)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Clientes Ativos</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Isolamento (Guest)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Estado</th>
                             </tr>
                         </thead>
                         <tbody id="unifiVlansTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2195,16 +2195,16 @@
 
                 <!-- TABELA 4: WLANS & REDES WI-FI / SSIDs (WLANCONF) -->
                 <div id="unifiTableWlansWrapper" class="hidden overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
+                    <table class="w-full text-left text-xs border-collapse min-w-[1000px]">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                                <th class="py-3 px-3">Rede Sem Fios (SSID)</th>
-                                <th class="py-3 px-3">VLAN Associada</th>
-                                <th class="py-3 px-3">Segurança / Encriptação</th>
-                                <th class="py-3 px-3 text-center">Bandas Transmitidas</th>
-                                <th class="py-3 px-3 text-center">Clientes Wi-Fi Ligados</th>
-                                <th class="py-3 px-3 text-center">Ocultação de SSID</th>
-                                <th class="py-3 px-3 text-center">Estado</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Rede Sem Fios (SSID)</th>
+                                <th class="py-3 px-3 whitespace-nowrap">VLAN Associada</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Segurança / Encriptação</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Bandas Transmitidas</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Clientes Wi-Fi Ligados</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Ocultação de SSID</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Estado</th>
                             </tr>
                         </thead>
                         <tbody id="unifiWlansTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -8159,50 +8159,50 @@
 
                     return `
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                            <td class="py-3 px-3">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 flex items-center justify-center shrink-0">
                                         <i data-lucide="${typeIcon}" class="w-3.5 h-3.5"></i>
                                     </div>
                                     <div>
-                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100">${escapeHtml(d.name)}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(d.mac)}</div>
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 whitespace-nowrap">${escapeHtml(d.name)}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono whitespace-nowrap">${escapeHtml(d.mac)}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-bold text-slate-700 dark:text-slate-300">${escapeHtml(d.model)}</div>
-                                <div class="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold">${escapeHtml(d.type_label)}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">${escapeHtml(d.model)}</div>
+                                <div class="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold whitespace-nowrap">${escapeHtml(d.type_label)}</div>
                             </td>
-                            <td class="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">
+                            <td class="py-3 px-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                 ${escapeHtml(d.ip)}
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${statusBadge}
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200 whitespace-nowrap">
                                     ${d.type === 'uap' ? `${d.num_sta} clientes` : `${d.active_ports || 8} / ${d.total_ports || 16} portas`}
                                 </div>
-                                <div class="text-[10px] text-slate-400">
+                                <div class="text-[10px] text-slate-400 whitespace-nowrap">
                                     ${d.type === 'uap' ? `${d.satisfaction || 98}% sinal` : `${d.num_sta || 0} estações`}
                                 </div>
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-mono text-slate-700 dark:text-slate-300">${escapeHtml(d.version)}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">${escapeHtml(d.version)}</div>
                                 ${upgradePill}
                             </td>
                             <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
                                 ${escapeHtml(d.uptime)}
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <div class="flex items-center justify-center gap-1.5 text-[10px] font-mono">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center gap-1.5 text-[10px] font-mono whitespace-nowrap">
                                     <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">CPU ${d.cpu}%</span>
                                     <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">RAM ${d.mem}%</span>
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <button onclick="openUnifiRestartModal('${escapeHtml(d.mac)}', '${escapeHtml(d.name)}', '${escapeHtml(d.model)}', '${escapeHtml(d.ip || '-')}')" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <button onclick="openUnifiRestartModal('${escapeHtml(d.mac)}', '${escapeHtml(d.name)}', '${escapeHtml(d.model)}', '${escapeHtml(d.ip || '-')}')" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
                                     <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
                                     <span>Reiniciar</span>
                                 </button>
@@ -8249,8 +8249,8 @@
                         : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"><i data-lucide="wifi" class="w-3 h-3"></i> ${c.band}</span>`;
 
                     const netBadge = isGuest
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Visitantes</span>`
-                        : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${escapeHtml(c.vlan_name || 'Corporativa')}</span>`;
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 whitespace-nowrap">Visitantes</span>`
+                        : `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap">${escapeHtml(c.vlan_name || 'Corporativa')}</span>`;
 
                     let signalHtml = `<span class="text-slate-400 font-mono text-[10px]">Cabo GbE</span>`;
                     if (!isWired) {
@@ -8266,62 +8266,62 @@
 
                     return `
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                            <td class="py-3 px-3">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
                                         <i data-lucide="${isWired ? 'laptop' : 'smartphone'}" class="w-3.5 h-3.5"></i>
                                     </div>
                                     <div>
-                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-1.5">
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-1.5 whitespace-nowrap">
                                             <span>${escapeHtml(c.name)}</span>
-                                            ${isBlocked ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800">Bloqueado</span>` : ''}
+                                            ${isBlocked ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 shrink-0">Bloqueado</span>` : ''}
                                         </div>
-                                        <div class="text-[10px] text-slate-400">${escapeHtml(c.oui || 'Genérico')}</div>
+                                        <div class="text-[10px] text-slate-400 whitespace-nowrap">${escapeHtml(c.oui || 'Genérico')}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-mono text-slate-800 dark:text-slate-200 font-bold">${escapeHtml(c.ip)}</div>
-                                <div class="text-[10px] font-mono text-slate-400">${escapeHtml(c.mac)}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-mono text-slate-800 dark:text-slate-200 font-bold whitespace-nowrap">${escapeHtml(c.ip)}</div>
+                                <div class="text-[10px] font-mono text-slate-400 whitespace-nowrap">${escapeHtml(c.mac)}</div>
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${connBadge}
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-bold text-slate-700 dark:text-slate-300">${escapeHtml(c.essid)}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">${escapeHtml(c.essid)}</div>
                                 <div class="mt-0.5">${netBadge}</div>
                             </td>
-                            <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium">
-                                <div class="flex items-center gap-1.5">
-                                    <i data-lucide="${isWired ? 'server' : 'router'}" class="w-3.5 h-3.5 text-cyan-500"></i>
+                            <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                                <div class="flex items-center gap-1.5 whitespace-nowrap">
+                                    <i data-lucide="${isWired ? 'server' : 'router'}" class="w-3.5 h-3.5 text-cyan-500 shrink-0"></i>
                                     <span class="truncate max-w-[160px]">${escapeHtml(c.connection_point)}</span>
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${signalHtml}
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200">${escapeHtml(c.total_formatted)}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">↓ ${escapeHtml(c.rx_formatted)} | ↑ ${escapeHtml(c.tx_formatted)}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-extrabold text-[#1E2A4A] dark:text-slate-200 whitespace-nowrap">${escapeHtml(c.total_formatted)}</div>
+                                <div class="text-[10px] text-slate-400 font-mono whitespace-nowrap">↓ ${escapeHtml(c.rx_formatted)} | ↑ ${escapeHtml(c.tx_formatted)}</div>
                             </td>
                             <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
                                 ${escapeHtml(c.uptime)}
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <div class="flex items-center justify-center gap-1.5">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
                                     ${isBlocked ? `
                                         <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'unblock')" 
-                                            class="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer">
+                                            class="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap">
                                             Desbloquear
                                         </button>
                                     ` : `
                                         <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'block')" 
-                                            class="px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-700 dark:text-red-300 border border-red-500/30 text-[10px] font-bold transition-all cursor-pointer">
+                                            class="px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-700 dark:text-red-300 border border-red-500/30 text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap">
                                             Bloquear
                                         </button>
                                     `}
                                     <button onclick="openClientActionModal('${escapeHtml(c.mac)}', '${escapeHtml(c.name)}', '${escapeHtml(c.ip)}', '${escapeHtml(c.essid)}', 'reconnect')" 
-                                        class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all cursor-pointer" title="Reconectar cliente">
+                                        class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap" title="Reconectar cliente">
                                         Kick
                                     </button>
                                 </div>
@@ -8364,38 +8364,38 @@
                     const vlanTag = v.vlan_tag || (`VLAN ${v.vlan}` + (v.vlan === 1 ? ' (Padrão)' : ''));
                     
                     const purposePill = isGuest
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Visitantes</span>`
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 whitespace-nowrap shrink-0">Visitantes</span>`
                         : v.vlan === 70
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">Móvel (Wi-Fi)</span>`
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 whitespace-nowrap shrink-0">Móvel (Wi-Fi)</span>`
                         : v.vlan === 20
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">Servidores</span>`
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 whitespace-nowrap shrink-0">Servidores</span>`
                         : v.vlan === 50
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800">CFTV / IoT</span>`
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800 whitespace-nowrap shrink-0">CFTV / IoT</span>`
                         : v.vlan === 30
-                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">Telefonia</span>`
-                        : `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Corporativa</span>`;
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">Telefonia</span>`
+                        : `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap shrink-0">Corporativa</span>`;
 
                     const vlanTagBadge = v.vlan === 1
-                        ? `<span class="px-2.5 py-1 rounded-md text-xs font-mono font-black bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700">${escapeHtml(vlanTag)}</span>`
-                        : `<span class="px-2.5 py-1 rounded-md text-xs font-mono font-black bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">${escapeHtml(vlanTag)}</span>`;
+                        ? `<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-black bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 whitespace-nowrap">${escapeHtml(vlanTag)}</span>`
+                        : `<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-black bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 whitespace-nowrap">${escapeHtml(vlanTag)}</span>`;
 
                     const isolationBadge = isIsolated
-                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><i data-lucide="shield-alert" class="w-3 h-3 text-amber-600 dark:text-amber-400"></i> Sim</span>`
-                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="shield" class="w-3 h-3 text-slate-400"></i> Não</span>`;
+                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 whitespace-nowrap"><i data-lucide="shield-alert" class="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0"></i> Sim</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap"><i data-lucide="shield" class="w-3 h-3 text-slate-400 shrink-0"></i> Não</span>`;
 
-                    const statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativa</span>`;
+                    const statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>Ativa</span>`;
 
                     const usagePct = v.dhcp_usage_pct || v.dhcp_occupancy_pct || 25.0;
 
                     return `
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                            <td class="py-3 px-3">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0">
                                         <i data-lucide="network" class="w-3.5 h-3.5"></i>
                                     </div>
                                     <div>
-                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2 whitespace-nowrap">
                                             <span>${escapeHtml(v.name)}</span>
                                             ${purposePill}
                                         </div>
@@ -8403,34 +8403,34 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${vlanTagBadge}
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-mono font-bold text-slate-800 dark:text-slate-100 text-xs">${escapeHtml(v.subnet)}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">Máscara: ${escapeHtml(v.netmask || '255.255.255.0')}</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-mono font-bold text-slate-800 dark:text-slate-100 text-xs whitespace-nowrap">${escapeHtml(v.subnet)}</div>
+                                <div class="text-[10px] text-slate-400 font-mono whitespace-nowrap">Máscara: ${escapeHtml(v.netmask || '255.255.255.0')}</div>
                             </td>
-                            <td class="py-3 px-3 font-mono">
-                                <div class="font-bold text-cyan-600 dark:text-cyan-400 text-xs">${escapeHtml(v.gateway_ip || '-')}</div>
-                                <div class="text-[10px] text-slate-400 font-sans">UDM Pro Gateway</div>
+                            <td class="py-3 px-3 font-mono whitespace-nowrap">
+                                <div class="font-bold text-cyan-600 dark:text-cyan-400 text-xs whitespace-nowrap">${escapeHtml(v.gateway_ip || '-')}</div>
+                                <div class="text-[10px] text-slate-400 font-sans whitespace-nowrap">UDM Pro Gateway</div>
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="font-mono text-slate-700 dark:text-slate-300 text-xs font-semibold">${escapeHtml(v.dhcp_range || (v.dhcp_start + ' - ' + v.dhcp_stop))}</div>
-                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">${v.dhcp_leases || v.active_leases || 0} / ${v.dhcp_pool_size || v.dhcp_total || 200} leases (${v.available_ips || 0} livres)</div>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="font-mono text-slate-700 dark:text-slate-300 text-xs font-semibold whitespace-nowrap">${escapeHtml(v.dhcp_range || (v.dhcp_start + ' - ' + v.dhcp_stop))}</div>
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5 whitespace-nowrap">${v.dhcp_leases || v.active_leases || 0} / ${v.dhcp_pool_size || v.dhcp_total || 200} leases (${v.available_ips || 0} livres)</div>
                                 <div class="w-32 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-1 overflow-hidden">
                                     <div class="bg-cyan-500 h-1.5 rounded-full" style="width: ${Math.min(100, usagePct)}%"></div>
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 font-mono">
-                                    <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 font-mono whitespace-nowrap">
+                                    <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shrink-0"></span>
                                     ${v.active_clients || 0} ativos
                                 </span>
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${isolationBadge}
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${statusBadge}
                             </td>
                         </tr>
@@ -8469,12 +8469,12 @@
                     const isHidden = w.hide_ssid === true;
 
                     const statusBadge = isEnabled
-                        ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativo</span>`
-                        : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inativo</span>`;
+                        ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>Ativo</span>`
+                        : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>Inativo</span>`;
 
                     const hideBadge = isHidden
-                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><i data-lucide="eye-off" class="w-3 h-3"></i> Oculto</span>`
-                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="eye" class="w-3 h-3"></i> Público</span>`;
+                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 whitespace-nowrap"><i data-lucide="eye-off" class="w-3 h-3 shrink-0"></i> Oculto</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap"><i data-lucide="eye" class="w-3 h-3 shrink-0"></i> Público</span>`;
 
                     const bandsHtml = Array.isArray(w.bands) ? w.bands.map(b => {
                         const bColor = b.includes('6')
@@ -8482,52 +8482,53 @@
                             : b.includes('5')
                             ? 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800'
                             : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800';
-                        return `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold border font-mono ${bColor}">${escapeHtml(b)}</span>`;
-                    }).join(' ') : '<span class="text-slate-400 text-xs">2.4 / 5 GHz</span>';
+                        return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border font-mono whitespace-nowrap ${bColor}">${escapeHtml(b)}</span>`;
+                    }).join(' ') : '<span class="text-slate-400 text-xs whitespace-nowrap">2.4 / 5 GHz</span>';
 
                     return `
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                            <td class="py-3 px-3">
+                            <td class="py-3 px-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
                                         <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
                                     </div>
                                     <div>
-                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 text-xs flex items-center gap-1.5">
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 text-xs flex items-center gap-1.5 whitespace-nowrap">
                                             <span>${escapeHtml(w.name || w.ssid)}</span>
-                                            ${w.is_guest ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">Guest</span>' : ''}
+                                            ${w.is_guest ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shrink-0">Guest</span>' : ''}
                                         </div>
                                         <div class="text-[10px] text-slate-400 max-w-xs truncate">${escapeHtml(w.description || '')}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-3">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-                                    ${escapeHtml(w.vlan_name || ('VLAN ' + w.vlan))}
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold whitespace-nowrap bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                                    <i data-lucide="network" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0"></i>
+                                    <span>${escapeHtml(w.vlan_name || ('VLAN ' + w.vlan))}</span>
                                 </span>
                             </td>
-                            <td class="py-3 px-3">
-                                <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 text-xs">
-                                    <i data-lucide="${w.security === 'open' ? 'unlock' : 'shield-check'}" class="w-3.5 h-3.5 text-cyan-500"></i>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 text-xs whitespace-nowrap">
+                                    <i data-lucide="${w.security === 'open' ? 'unlock' : 'shield-check'}" class="w-3.5 h-3.5 text-cyan-500 shrink-0"></i>
                                     <span>${escapeHtml(w.security_label || w.security)}</span>
                                 </div>
-                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">${escapeHtml(w.wpa_mode || '')}</div>
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5 whitespace-nowrap">${escapeHtml(w.wpa_mode || '')}</div>
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <div class="flex items-center justify-center gap-1">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <div class="inline-flex items-center justify-center gap-1 flex-nowrap">
                                     ${bandsHtml}
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800 font-mono">
-                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800 font-mono whitespace-nowrap">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0"></span>
                                     ${w.active_clients || 0} clientes
                                 </span>
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${hideBadge}
                             </td>
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
                                 ${statusBadge}
                             </td>
                         </tr>
