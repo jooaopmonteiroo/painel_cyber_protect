@@ -2024,16 +2024,26 @@
                 <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                     
                     <!-- Alternador de Visões (Segmented Control) -->
-                    <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-[#0E1528] border border-slate-200 dark:border-[#2A3B66] shadow-inner w-full md:w-auto">
-                        <button id="unifiViewBtnDevices" onclick="setUnifiView('devices')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95">
+                    <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-[#0E1528] border border-slate-200 dark:border-[#2A3B66] shadow-inner w-full md:w-auto overflow-x-auto scrollbar-none">
+                        <button id="unifiViewBtnDevices" onclick="setUnifiView('devices')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95 whitespace-nowrap">
                             <i data-lucide="router" class="w-4 h-4"></i>
-                            <span>Equipamentos UniFi (Infra)</span>
-                            <span id="unifiTabDevicesBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-400/20 text-cyan-200">13</span>
+                            <span>Equipamentos (Infra)</span>
+                            <span id="unifiTabDevicesBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-400/20 text-cyan-200 font-mono">13</span>
                         </button>
-                        <button id="unifiViewBtnClients" onclick="setUnifiView('clients')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95">
+                        <button id="unifiViewBtnClients" onclick="setUnifiView('clients')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95 whitespace-nowrap">
                             <i data-lucide="laptop" class="w-4 h-4"></i>
                             <span>Clientes Conectados</span>
-                            <span id="unifiTabClientsBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300">0</span>
+                            <span id="unifiTabClientsBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">0</span>
+                        </button>
+                        <button id="unifiViewBtnVlans" onclick="setUnifiView('vlans')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95 whitespace-nowrap">
+                            <i data-lucide="network" class="w-4 h-4"></i>
+                            <span>VLANs & Sub-redes</span>
+                            <span id="unifiTabVlansBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-300 font-mono">6</span>
+                        </button>
+                        <button id="unifiViewBtnWlans" onclick="setUnifiView('wlans')" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95 whitespace-nowrap">
+                            <i data-lucide="wifi" class="w-4 h-4"></i>
+                            <span>WLANs & SSIDs (Wi-Fi)</span>
+                            <span id="unifiTabWlansBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-300 font-mono">5</span>
                         </button>
                     </div>
 
@@ -2042,7 +2052,7 @@
                         <!-- Input de Busca -->
                         <div class="relative flex-1 sm:w-64">
                             <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                            <input type="text" id="unifiSearchInput" oninput="onUnifiSearchInput(this.value)" placeholder="Buscar por Nome, IP, MAC, SSID..." class="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:border-cyan-500 shadow-sm">
+                            <input type="text" id="unifiSearchInput" oninput="onUnifiSearchInput(this.value)" placeholder="Buscar por Nome, IP, VLAN, SSID..." class="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:border-cyan-500 shadow-sm">
                         </div>
 
                         <!-- Filtro de Dispositivos Infra -->
@@ -2080,6 +2090,38 @@
                                 <option value="all">Rede: Todas</option>
                                 <option value="corporate">Corporativa</option>
                                 <option value="guest">Visitantes (Guest)</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro de VLANs & Sub-redes -->
+                        <div id="unifiVlansFilterContainer" class="hidden flex flex-wrap items-center gap-2">
+                            <select id="unifiVlanPurposeSelect" onchange="onUnifiVlanFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Todos os Propósitos</option>
+                                <option value="corporate">Corporativa</option>
+                                <option value="guest">Visitantes (Guest)</option>
+                                <option value="servers">Servidores</option>
+                                <option value="cftv">CFTV / IoT</option>
+                                <option value="voip">Telefonia (VoIP)</option>
+                            </select>
+                            <select id="unifiVlanIsolationSelect" onchange="onUnifiVlanFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Isolamento: Todos</option>
+                                <option value="isolated">Isolada (Sim)</option>
+                                <option value="shared">Compartilhada (Não)</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro de WLANs & SSIDs -->
+                        <div id="unifiWlansFilterContainer" class="hidden flex flex-wrap items-center gap-2">
+                            <select id="unifiWlanSecuritySelect" onchange="onUnifiWlanFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Segurança: Todas</option>
+                                <option value="personal">WPA2/WPA3 Personal</option>
+                                <option value="enterprise">WPA Enterprise</option>
+                                <option value="open">Aberta / Portal Captivo</option>
+                            </select>
+                            <select id="unifiWlanStatusSelect" onchange="onUnifiWlanFilterChange()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:border-cyan-500 shadow-sm">
+                                <option value="all">Estado: Todos</option>
+                                <option value="active">Ativo</option>
+                                <option value="disabled">Inativo</option>
                             </select>
                         </div>
                     </div>
@@ -2125,6 +2167,47 @@
                             </tr>
                         </thead>
                         <tbody id="unifiClientsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TABELA 3: VLANS & SUB-REDES LOCAIS (NETWORKCONF) -->
+                <div id="unifiTableVlansWrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                <th class="py-3 px-3">Nome da Rede / Propósito</th>
+                                <th class="py-3 px-3 text-center">ID da VLAN (Tag)</th>
+                                <th class="py-3 px-3">Sub-rede & Máscara (CIDR)</th>
+                                <th class="py-3 px-3">Gateway / IP da Consola</th>
+                                <th class="py-3 px-3">Intervalo de DHCP (Pool)</th>
+                                <th class="py-3 px-3 text-center">Clientes Ativos</th>
+                                <th class="py-3 px-3 text-center">Isolamento (Guest)</th>
+                                <th class="py-3 px-3 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unifiVlansTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TABELA 4: WLANS & REDES WI-FI / SSIDs (WLANCONF) -->
+                <div id="unifiTableWlansWrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                <th class="py-3 px-3">Rede Sem Fios (SSID)</th>
+                                <th class="py-3 px-3">VLAN Associada</th>
+                                <th class="py-3 px-3">Segurança / Encriptação</th>
+                                <th class="py-3 px-3 text-center">Bandas Transmitidas</th>
+                                <th class="py-3 px-3 text-center">Clientes Wi-Fi Ligados</th>
+                                <th class="py-3 px-3 text-center">Ocultação de SSID</th>
+                                <th class="py-3 px-3 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unifiWlansTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
                             <!-- Inserido dinamicamente via JS -->
                         </tbody>
                     </table>
@@ -3433,18 +3516,28 @@
         let selectedPoePort = null;
         let selectedClientAction = null;
 
-        let unifiCurrentView = 'devices'; // 'devices' ou 'clients'
+        let unifiCurrentView = 'devices'; // 'devices', 'clients', 'vlans', 'wlans'
         let unifiRawDevices = [];
         let unifiRawClients = [];
+        let unifiRawVlans = [];
+        let unifiRawWlans = [];
         let unifiFilteredDevices = [];
         let unifiFilteredClients = [];
+        let unifiFilteredVlans = [];
+        let unifiFilteredWlans = [];
         let unifiSearchQuery = '';
         let unifiDeviceTypeFilter = 'all';
         let unifiDeviceStatusFilter = 'all';
         let unifiClientConnFilter = 'all';
         let unifiClientNetFilter = 'all';
+        let unifiVlanPurposeFilter = 'all';
+        let unifiVlanIsolationFilter = 'all';
+        let unifiWlanSecurityFilter = 'all';
+        let unifiWlanStatusFilter = 'all';
         let unifiDevicesCurrentPage = 1;
         let unifiClientsCurrentPage = 1;
+        let unifiVlansCurrentPage = 1;
+        let unifiWlansCurrentPage = 1;
         const UNIFI_PAGE_SIZE = 8;
 
         let isRefreshing = false;
@@ -6659,14 +6752,15 @@
 
         async function fetchUnifiData() {
             try {
-                const [summaryRes, devicesRes, clientsRes, analyticsRes, wansRes, portsRes, networksRes] = await Promise.allSettled([
+                const [summaryRes, devicesRes, clientsRes, analyticsRes, wansRes, portsRes, networksRes, wlansRes] = await Promise.allSettled([
                     fetch(`${API_BASE}/api/unifi/summary`),
                     fetch(`${API_BASE}/api/unifi/devices`),
                     fetch(`${API_BASE}/api/unifi/clients`),
                     fetch(`${API_BASE}/api/unifi/analytics`),
                     fetch(`${API_BASE}/api/unifi/wans`),
                     fetch(`${API_BASE}/api/unifi/ports`),
-                    fetch(`${API_BASE}/api/unifi/networks`)
+                    fetch(`${API_BASE}/api/unifi/networks`),
+                    fetch(`${API_BASE}/api/unifi/wlans`)
                 ]);
 
                 // 1. Resumo e KPIs
@@ -6719,12 +6813,24 @@
                     renderUnifiPortMatrix(portsData);
                 }
 
-                // 7. Redes e VLANs (DHCP Leases)
+                // 7. Redes e VLANs (DHCP Leases e Catálogo)
                 if (networksRes.status === 'fulfilled' && networksRes.value.ok) {
                     const netData = await networksRes.value.json();
                     auditLogApi('/api/unifi/networks', networksRes.value.status, netData);
                     unifiRawNetworks = Array.isArray(netData.networks) ? netData.networks : [];
+                    unifiRawVlans = unifiRawNetworks;
+                    const vBadge = document.getElementById('unifiTabVlansBadge');
+                    if (vBadge) vBadge.textContent = unifiRawVlans.length;
                     renderUnifiNetworks(netData);
+                }
+
+                // 8. WLANs / Redes Wi-Fi (SSIDs)
+                if (wlansRes.status === 'fulfilled' && wlansRes.value.ok) {
+                    const wlanData = await wlansRes.value.json();
+                    auditLogApi('/api/unifi/wlans', wlansRes.value.status, wlanData);
+                    unifiRawWlans = Array.isArray(wlanData.wlans) ? wlanData.wlans : [];
+                    const wBadge = document.getElementById('unifiTabWlansBadge');
+                    if (wBadge) wBadge.textContent = unifiRawWlans.length;
                 }
 
                 // Aplica filtros e renderiza visualização ativa
@@ -7643,6 +7749,22 @@
                         if (payload.signal) {
                             renderUnifiSignalQuality(payload.signal);
                         }
+
+                        if (payload.vlans_summary && Array.isArray(payload.vlans_summary) && unifiRawVlans.length > 0) {
+                            payload.vlans_summary.forEach(vs => {
+                                const v = unifiRawVlans.find(x => x.name === vs.name || x.vlan === vs.vlan);
+                                if (v && vs.active_clients !== undefined) v.active_clients = vs.active_clients;
+                            });
+                            if (unifiCurrentView === 'vlans') renderUnifiVlansTable();
+                        }
+
+                        if (payload.wlans_summary && Array.isArray(payload.wlans_summary) && unifiRawWlans.length > 0) {
+                            payload.wlans_summary.forEach(ws => {
+                                const w = unifiRawWlans.find(x => x.name === ws.name);
+                                if (w && ws.active_clients !== undefined) w.active_clients = ws.active_clients;
+                            });
+                            if (unifiCurrentView === 'wlans') renderUnifiWlansTable();
+                        }
                     } catch (e) {
                         console.warn("[SSE UniFi] Erro no parsing do stream:", e);
                     }
@@ -7911,14 +8033,55 @@
                 return true;
             });
 
+            // Filtro VLANs & Sub-redes
+            unifiFilteredVlans = unifiRawVlans.filter(v => {
+                if (q) {
+                    const matchText = `${v.name} ${v.purpose} ${v.purpose_label} ${v.vlan} ${v.subnet} ${v.gateway_ip} ${v.dhcp_range}`.toLowerCase();
+                    if (!matchText.includes(q)) return false;
+                }
+                if (unifiVlanPurposeFilter !== 'all') {
+                    const pur = (v.purpose || '').toLowerCase();
+                    const purLbl = (v.purpose_label || '').toLowerCase();
+                    if (unifiVlanPurposeFilter === 'corporate' && !pur.includes('corp') && !purLbl.includes('corp')) return false;
+                    if (unifiVlanPurposeFilter === 'guest' && !v.is_guest && !pur.includes('guest')) return false;
+                    if (unifiVlanPurposeFilter === 'servers' && !purLbl.includes('serv')) return false;
+                    if (unifiVlanPurposeFilter === 'cftv' && !purLbl.includes('cftv')) return false;
+                    if (unifiVlanPurposeFilter === 'voip' && !purLbl.includes('telef') && !purLbl.includes('voip')) return false;
+                }
+                if (unifiVlanIsolationFilter === 'isolated' && !v.isolation && !v.is_guest) return false;
+                if (unifiVlanIsolationFilter === 'shared' && (v.isolation || v.is_guest)) return false;
+                return true;
+            });
+
+            // Filtro WLANs & SSIDs
+            unifiFilteredWlans = unifiRawWlans.filter(w => {
+                if (q) {
+                    const matchText = `${w.name} ${w.ssid} ${w.vlan_name} ${w.security} ${w.security_label} ${w.wpa_mode}`.toLowerCase();
+                    if (!matchText.includes(q)) return false;
+                }
+                if (unifiWlanSecurityFilter !== 'all') {
+                    const sec = (w.security_label || w.security || '').toLowerCase();
+                    if (unifiWlanSecurityFilter === 'personal' && !sec.includes('personal')) return false;
+                    if (unifiWlanSecurityFilter === 'enterprise' && !sec.includes('enterprise')) return false;
+                    if (unifiWlanSecurityFilter === 'open' && !sec.includes('aberta') && !sec.includes('captiv') && !sec.includes('open')) return false;
+                }
+                if (unifiWlanStatusFilter === 'active' && !w.enabled) return false;
+                if (unifiWlanStatusFilter === 'disabled' && w.enabled) return false;
+                return true;
+            });
+
             renderUnifiActiveTable();
         }
 
         function renderUnifiActiveTable() {
             if (unifiCurrentView === 'devices') {
                 renderUnifiDevicesTable();
-            } else {
+            } else if (unifiCurrentView === 'clients') {
                 renderUnifiClientsTable();
+            } else if (unifiCurrentView === 'vlans') {
+                renderUnifiVlansTable();
+            } else if (unifiCurrentView === 'wlans') {
+                renderUnifiWlansTable();
             }
         }
 
@@ -7926,26 +8089,36 @@
             unifiCurrentView = view;
             const btnDev = document.getElementById('unifiViewBtnDevices');
             const btnCli = document.getElementById('unifiViewBtnClients');
+            const btnVlan = document.getElementById('unifiViewBtnVlans');
+            const btnWlan = document.getElementById('unifiViewBtnWlans');
+
             const wrapDev = document.getElementById('unifiTableDevicesWrapper');
             const wrapCli = document.getElementById('unifiTableClientsWrapper');
+            const wrapVlan = document.getElementById('unifiTableVlansWrapper');
+            const wrapWlan = document.getElementById('unifiTableWlansWrapper');
+
             const filterDev = document.getElementById('unifiDevicesFilterContainer');
             const filterCli = document.getElementById('unifiClientsFilterContainer');
+            const filterVlan = document.getElementById('unifiVlansFilterContainer');
+            const filterWlan = document.getElementById('unifiWlansFilterContainer');
 
-            if (view === 'devices') {
-                btnDev.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95";
-                btnCli.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95";
-                wrapDev.classList.remove('hidden');
-                wrapCli.classList.add('hidden');
-                filterDev.classList.remove('hidden');
-                filterCli.classList.add('hidden');
-            } else {
-                btnCli.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95";
-                btnDev.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95";
-                wrapCli.classList.remove('hidden');
-                wrapDev.classList.add('hidden');
-                filterCli.classList.remove('hidden');
-                filterDev.classList.add('hidden');
-            }
+            const activeClass = "flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer bg-[#1E2A4A] dark:bg-cyan-500 text-white dark:text-[#0B0F19] shadow-sm active:scale-95 whitespace-nowrap";
+            const inactiveClass = "flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95 whitespace-nowrap";
+
+            if (btnDev) btnDev.className = (view === 'devices') ? activeClass : inactiveClass;
+            if (btnCli) btnCli.className = (view === 'clients') ? activeClass : inactiveClass;
+            if (btnVlan) btnVlan.className = (view === 'vlans') ? activeClass : inactiveClass;
+            if (btnWlan) btnWlan.className = (view === 'wlans') ? activeClass : inactiveClass;
+
+            if (wrapDev) wrapDev.classList.toggle('hidden', view !== 'devices');
+            if (wrapCli) wrapCli.classList.toggle('hidden', view !== 'clients');
+            if (wrapVlan) wrapVlan.classList.toggle('hidden', view !== 'vlans');
+            if (wrapWlan) wrapWlan.classList.toggle('hidden', view !== 'wlans');
+
+            if (filterDev) filterDev.classList.toggle('hidden', view !== 'devices');
+            if (filterCli) filterCli.classList.toggle('hidden', view !== 'clients');
+            if (filterVlan) filterVlan.classList.toggle('hidden', view !== 'vlans');
+            if (filterWlan) filterWlan.classList.toggle('hidden', view !== 'wlans');
 
             renderUnifiActiveTable();
             if (window.lucide) lucide.createIcons();
@@ -8163,6 +8336,209 @@
             if (window.lucide) lucide.createIcons();
         }
 
+        function renderUnifiVlansTable() {
+            const tbody = document.getElementById('unifiVlansTableBody');
+            if (!tbody) return;
+
+            const total = unifiFilteredVlans.length;
+            const totalPages = Math.max(1, Math.ceil(total / UNIFI_PAGE_SIZE));
+            unifiVlansCurrentPage = Math.min(Math.max(1, unifiVlansCurrentPage), totalPages);
+
+            const startIdx = (unifiVlansCurrentPage - 1) * UNIFI_PAGE_SIZE;
+            const endIdx = startIdx + UNIFI_PAGE_SIZE;
+            const pageData = unifiFilteredVlans.slice(startIdx, endIdx);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="network" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            <div>Nenhuma VLAN ou sub-rede encontrada para os filtros aplicados.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageData.map(v => {
+                    const isGuest = v.is_guest === true;
+                    const isIsolated = v.isolation === true || isGuest;
+                    const vlanTag = v.vlan_tag || (`VLAN ${v.vlan}` + (v.vlan === 1 ? ' (Padrão)' : ''));
+                    
+                    const purposePill = isGuest
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Visitantes</span>`
+                        : v.vlan === 70
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">Móvel (Wi-Fi)</span>`
+                        : v.vlan === 20
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">Servidores</span>`
+                        : v.vlan === 50
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800">CFTV / IoT</span>`
+                        : v.vlan === 30
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">Telefonia</span>`
+                        : `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Corporativa</span>`;
+
+                    const vlanTagBadge = v.vlan === 1
+                        ? `<span class="px-2.5 py-1 rounded-md text-xs font-mono font-black bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700">${escapeHtml(vlanTag)}</span>`
+                        : `<span class="px-2.5 py-1 rounded-md text-xs font-mono font-black bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">${escapeHtml(vlanTag)}</span>`;
+
+                    const isolationBadge = isIsolated
+                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><i data-lucide="shield-alert" class="w-3 h-3 text-amber-600 dark:text-amber-400"></i> Sim</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="shield" class="w-3 h-3 text-slate-400"></i> Não</span>`;
+
+                    const statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativa</span>`;
+
+                    const usagePct = v.dhcp_usage_pct || v.dhcp_occupancy_pct || 25.0;
+
+                    return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                            <td class="py-3 px-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0">
+                                        <i data-lucide="network" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 flex items-center gap-2">
+                                            <span>${escapeHtml(v.name)}</span>
+                                            ${purposePill}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 max-w-xs truncate">${escapeHtml(v.description || '')}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${vlanTagBadge}
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-mono font-bold text-slate-800 dark:text-slate-100 text-xs">${escapeHtml(v.subnet)}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">Máscara: ${escapeHtml(v.netmask || '255.255.255.0')}</div>
+                            </td>
+                            <td class="py-3 px-3 font-mono">
+                                <div class="font-bold text-cyan-600 dark:text-cyan-400 text-xs">${escapeHtml(v.gateway_ip || '-')}</div>
+                                <div class="text-[10px] text-slate-400 font-sans">UDM Pro Gateway</div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="font-mono text-slate-700 dark:text-slate-300 text-xs font-semibold">${escapeHtml(v.dhcp_range || (v.dhcp_start + ' - ' + v.dhcp_stop))}</div>
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">${v.dhcp_leases || v.active_leases || 0} / ${v.dhcp_pool_size || v.dhcp_total || 200} leases (${v.available_ips || 0} livres)</div>
+                                <div class="w-32 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-1 overflow-hidden">
+                                    <div class="bg-cyan-500 h-1.5 rounded-full" style="width: ${Math.min(100, usagePct)}%"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 font-mono">
+                                    <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                                    ${v.active_clients || 0} ativos
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${isolationBadge}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${statusBadge}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            updateUnifiPagination(startIdx, endIdx, total, totalPages, unifiVlansCurrentPage);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderUnifiWlansTable() {
+            const tbody = document.getElementById('unifiWlansTableBody');
+            if (!tbody) return;
+
+            const total = unifiFilteredWlans.length;
+            const totalPages = Math.max(1, Math.ceil(total / UNIFI_PAGE_SIZE));
+            unifiWlansCurrentPage = Math.min(Math.max(1, unifiWlansCurrentPage), totalPages);
+
+            const startIdx = (unifiWlansCurrentPage - 1) * UNIFI_PAGE_SIZE;
+            const endIdx = startIdx + UNIFI_PAGE_SIZE;
+            const pageData = unifiFilteredWlans.slice(startIdx, endIdx);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500 font-medium">
+                            <i data-lucide="wifi" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
+                            <div>Nenhuma rede Wi-Fi (WLAN) encontrada para os filtros aplicados.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageData.map(w => {
+                    const isEnabled = w.enabled !== false;
+                    const isHidden = w.hide_ssid === true;
+
+                    const statusBadge = isEnabled
+                        ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativo</span>`
+                        : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inativo</span>`;
+
+                    const hideBadge = isHidden
+                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><i data-lucide="eye-off" class="w-3 h-3"></i> Oculto</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="eye" class="w-3 h-3"></i> Público</span>`;
+
+                    const bandsHtml = Array.isArray(w.bands) ? w.bands.map(b => {
+                        const bColor = b.includes('6')
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                            : b.includes('5')
+                            ? 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800'
+                            : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800';
+                        return `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold border font-mono ${bColor}">${escapeHtml(b)}</span>`;
+                    }).join(' ') : '<span class="text-slate-400 text-xs">2.4 / 5 GHz</span>';
+
+                    return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                            <td class="py-3 px-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                                        <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-extrabold text-[#1E2A4A] dark:text-slate-100 text-xs flex items-center gap-1.5">
+                                            <span>${escapeHtml(w.name || w.ssid)}</span>
+                                            ${w.is_guest ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">Guest</span>' : ''}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 max-w-xs truncate">${escapeHtml(w.description || '')}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                                    ${escapeHtml(w.vlan_name || ('VLAN ' + w.vlan))}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 text-xs">
+                                    <i data-lucide="${w.security === 'open' ? 'unlock' : 'shield-check'}" class="w-3.5 h-3.5 text-cyan-500"></i>
+                                    <span>${escapeHtml(w.security_label || w.security)}</span>
+                                </div>
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">${escapeHtml(w.wpa_mode || '')}</div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    ${bandsHtml}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800 font-mono">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                    ${w.active_clients || 0} clientes
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${hideBadge}
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                ${statusBadge}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            updateUnifiPagination(startIdx, endIdx, total, totalPages, unifiWlansCurrentPage);
+            if (window.lucide) lucide.createIcons();
+        }
+
         function updateUnifiPagination(startIdx, endIdx, total, totalPages, currentPage) {
             const info = document.getElementById('unifiPaginationInfo');
             const ind = document.getElementById('unifiPageIndicator');
@@ -8182,8 +8558,12 @@
         function changeUnifiPage(delta) {
             if (unifiCurrentView === 'devices') {
                 unifiDevicesCurrentPage += delta;
-            } else {
+            } else if (unifiCurrentView === 'clients') {
                 unifiClientsCurrentPage += delta;
+            } else if (unifiCurrentView === 'vlans') {
+                unifiVlansCurrentPage += delta;
+            } else if (unifiCurrentView === 'wlans') {
+                unifiWlansCurrentPage += delta;
             }
             renderUnifiActiveTable();
         }
@@ -8192,6 +8572,8 @@
             unifiSearchQuery = val || '';
             unifiDevicesCurrentPage = 1;
             unifiClientsCurrentPage = 1;
+            unifiVlansCurrentPage = 1;
+            unifiWlansCurrentPage = 1;
             applyUnifiFilters();
         }
 
@@ -8206,6 +8588,20 @@
             unifiClientConnFilter = document.getElementById('unifiClientConnSelect')?.value || 'all';
             unifiClientNetFilter = document.getElementById('unifiClientNetSelect')?.value || 'all';
             unifiClientsCurrentPage = 1;
+            applyUnifiFilters();
+        }
+
+        function onUnifiVlanFilterChange() {
+            unifiVlanPurposeFilter = document.getElementById('unifiVlanPurposeSelect')?.value || 'all';
+            unifiVlanIsolationFilter = document.getElementById('unifiVlanIsolationSelect')?.value || 'all';
+            unifiVlansCurrentPage = 1;
+            applyUnifiFilters();
+        }
+
+        function onUnifiWlanFilterChange() {
+            unifiWlanSecurityFilter = document.getElementById('unifiWlanSecuritySelect')?.value || 'all';
+            unifiWlanStatusFilter = document.getElementById('unifiWlanStatusSelect')?.value || 'all';
+            unifiWlansCurrentPage = 1;
             applyUnifiFilters();
         }
 

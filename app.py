@@ -556,9 +556,15 @@ async def get_unifi_clients(
 
 @app.get("/api/unifi/networks", dependencies=[Depends(require_auth)])
 async def get_unifi_networks():
-    """Retorna detalhes oficiais das sub-redes e VLANs (LAN Principal, VLAN 70, VLAN 60) e ocupação do DHCP."""
+    """Retorna detalhes oficiais das sub-redes e VLANs (LAN Principal, VLAN 70, VLAN 60, etc.) e contagem de clientes ativos."""
     networks = await unifi.get_networks()
     return {"networks": networks, "count": len(networks)}
+
+@app.get("/api/unifi/wlans", dependencies=[Depends(require_auth)])
+async def get_unifi_wlans():
+    """Retorna as redes Wi-Fi (WLANs / SSIDs) configuradas na UDM Pro com contagem dinâmica de clientes associados."""
+    wlans = await unifi.get_wlans()
+    return {"wlans": wlans, "count": len(wlans)}
 
 @app.get("/api/unifi/wans", dependencies=[Depends(require_auth)])
 async def get_unifi_wans():
