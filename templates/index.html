@@ -1743,13 +1743,33 @@
                         </div>
                     </div>
 
-                    <!-- Agrupamento Central: Dropdown de Atividade -->
-                    <div class="flex items-center">
-                        <button type="button" class="flex items-center gap-2 bg-[#141c2e] text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700/70 font-semibold text-xs shadow-inner hover:bg-[#1b253b] transition-colors">
+                    <!-- Agrupamento Central: Dropdown de Atividade / Métrica -->
+                    <div class="relative" id="unifiMetricDropdownContainer">
+                        <button type="button" onclick="toggleUnifiMetricDropdown()" id="unifiMetricBtn" 
+                            class="flex items-center gap-2 bg-[#141c2e] hover:bg-[#1b253b] text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700/70 font-semibold text-xs shadow-inner transition-colors">
                             <i data-lucide="menu" class="w-3.5 h-3.5 text-slate-300"></i>
-                            <span>Atividade de Internet</span>
+                            <span id="unifiMetricLabel">Atividade de Internet</span>
                             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 ml-1"></i>
                         </button>
+                        <div id="unifiMetricDropdownMenu" 
+                            class="hidden absolute left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl py-1 z-50 text-xs">
+                            <button type="button" onclick="selectUnifiMetric('default')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                                <span>Atividade de Internet (Geral)</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                            </button>
+                            <button type="button" onclick="selectUnifiMetric('traffic')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                                <span>Taxa de Download & Upload</span>
+                                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800/40">Mbps</span>
+                            </button>
+                            <button type="button" onclick="selectUnifiMetric('quality')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                                <span>Qualidade & Latência WAN</span>
+                                <span class="text-[10px] font-mono text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-800/40">ms</span>
+                            </button>
+                            <button type="button" onclick="selectUnifiMetric('conns')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                                <span>Volume de Conexões Ativas</span>
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded border border-slate-700/60">Sessions</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Agrupamento Direito: Toggles das Séries & Seletor de Intervalo -->
@@ -1757,28 +1777,28 @@
                         
                         <!-- Checkboxes com cores e estilos de legenda integrados -->
                         <div class="flex items-center gap-3">
-                            <!-- Toggle Latência Média -->
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-200 font-medium hover:text-white transition-colors">
+                            <!-- Toggle Série 1 -->
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-200 font-medium hover:text-white transition-colors" id="unifiToggleLatencyLabel">
                                 <input type="checkbox" id="unifiToggleLatency" checked onchange="toggleUnifiSeries('latency', this.checked)"
                                     class="w-3.5 h-3.5 rounded bg-[#141c2e] border-slate-600 text-sky-500 focus:ring-0 focus:ring-offset-0 cursor-pointer">
-                                <span class="inline-flex items-center gap-0.5 text-[#38bdf8] font-black text-xs tracking-tighter">••</span>
-                                <span>Latência Média</span>
+                                <span id="unifiSeriesDot1" class="inline-flex items-center gap-0.5 text-[#38bdf8] font-black text-xs tracking-tighter">••</span>
+                                <span id="unifiSeriesText1">Latência Média</span>
                             </label>
 
-                            <!-- Toggle Perda de Pacotes -->
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-200 font-medium hover:text-white transition-colors">
+                            <!-- Toggle Série 2 -->
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-200 font-medium hover:text-white transition-colors" id="unifiToggleLossLabel">
                                 <input type="checkbox" id="unifiToggleLoss" checked onchange="toggleUnifiSeries('loss', this.checked)"
                                     class="w-3.5 h-3.5 rounded bg-[#141c2e] border-slate-600 text-purple-500 focus:ring-0 focus:ring-offset-0 cursor-pointer">
-                                <span class="inline-flex items-center gap-0.5 text-[#c084fc] font-black text-xs tracking-tighter">••</span>
-                                <span>Perda de Pacotes</span>
+                                <span id="unifiSeriesDot2" class="inline-flex items-center gap-0.5 text-[#c084fc] font-black text-xs tracking-tighter">••</span>
+                                <span id="unifiSeriesText2">Perda de Pacotes</span>
                             </label>
 
-                            <!-- Toggle Conexões -->
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-400 hover:text-slate-300 font-medium transition-colors">
+                            <!-- Toggle Série 3 -->
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none text-slate-400 hover:text-slate-300 font-medium transition-colors" id="unifiToggleConnsLabel">
                                 <input type="checkbox" id="unifiToggleConns" onchange="toggleUnifiSeries('conns', this.checked)"
                                     class="w-3.5 h-3.5 rounded bg-[#141c2e] border-slate-600 text-slate-400 focus:ring-0 focus:ring-offset-0 cursor-pointer">
-                                <span class="inline-flex items-center text-slate-400 font-bold text-xs">▬</span>
-                                <span>Conexões</span>
+                                <span id="unifiSeriesDot3" class="inline-flex items-center text-slate-400 font-bold text-xs">▬</span>
+                                <span id="unifiSeriesText3">Conexões</span>
                             </label>
                         </div>
 
@@ -1804,7 +1824,7 @@
                 </div>
 
                 <!-- BARRAS DE STATUS DE DISPONIBILIDADE DOS LINKS (TIMELINE GANTT INFERIOR) -->
-                <div class="pt-3 border-t border-slate-800/60 flex flex-col gap-2.5 text-xs">
+                <div id="unifiGanttBarsContainer" class="pt-3 border-t border-slate-800/60 flex flex-col gap-2.5 text-xs">
                     
                     <!-- Link 1: Samm Tecnologia (MEGA) - WAN 2 -->
                     <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
@@ -1850,13 +1870,13 @@
                 <!-- Rodapé de Telemetria Instantânea -->
                 <div class="mt-3 pt-2.5 border-t border-slate-800/40 flex items-center justify-between text-[11px] text-slate-400">
                     <div class="flex items-center gap-4">
-                        <span>Taxa Instantânea: <strong class="text-sky-400 font-mono" id="unifiChartPeakTraffic">↓ 142.5 Mbps | ↑ 46.8 Mbps</strong></span>
-                        <span>Latência WAN: <strong class="text-purple-400 font-mono" id="unifiChartLatencyDisplay">11.8 ms</strong></span>
-                        <span>Perda de Pacotes: <strong class="text-emerald-400 font-mono" id="unifiChartLossDisplay">0.0%</strong></span>
+                        <span><span id="unifiChartTelemTitle1">Taxa Instantânea:</span> <strong class="text-sky-400 font-mono" id="unifiChartPeakTraffic">↓ 142.5 Mbps | ↑ 46.8 Mbps</strong></span>
+                        <span><span id="unifiChartTelemTitle2">Latência WAN:</span> <strong class="text-purple-400 font-mono" id="unifiChartLatencyDisplay">11.8 ms</strong></span>
+                        <span><span id="unifiChartTelemTitle3">Perda de Pacotes:</span> <strong class="text-emerald-400 font-mono" id="unifiChartLossDisplay">0.0%</strong></span>
                     </div>
                     <span class="text-slate-400 flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Telemetria em Tempo Real (UDM Pro 192.168.99.1)</span>
+                        <span id="unifiChartTelemFooter">Telemetria em Tempo Real (UDM Pro 192.168.99.1)</span>
                     </span>
                 </div>
 
@@ -6358,7 +6378,15 @@
                                         font: { family: 'Inter', size: 10, weight: '600' },
                                         callback: function(val, index) {
                                             const labels = this.chart.data.labels;
+                                            if (!labels || !labels[index]) return '';
                                             const text = labels[index];
+                                            if (labels.length <= 8) {
+                                                return text;
+                                            }
+                                            if (labels.length <= 15) {
+                                                if (index % 2 === 0 || index === labels.length - 1) return text;
+                                                return '';
+                                            }
                                             const keyList = ["1 PM", "5 PM", "9 PM", "1 AM", "5 AM", "9 AM", "Agora"];
                                             if (keyList.includes(text) || index === 0 || index === labels.length - 1) {
                                                 return text;
@@ -6450,6 +6478,12 @@
                             }
                         }
                     });
+
+                    if (typeof renderUnifiIspDropdownMenu === 'function') {
+                        renderUnifiIspDropdownMenu('internet');
+                        renderUnifiMetricDropdownMenu('internet');
+                        renderUnifiSeriesCheckboxes('internet');
+                    }
                 }
             } catch (err) {
                 console.error("Erro ao inicializar chartUnifiWanTimeline:", err);
@@ -6793,33 +6827,113 @@
         }
 
         // =========================================================================
-        // PIPELINE SSE EM TEMPO REAL & CONTROLES DA ATIVIDADE DE INTERNET UNIFI
+        // PIPELINE SSE EM TEMPO REAL & CONTROLES DA ATIVIDADE DE INTERNET/WIFI/FLUXOS
         // =========================================================================
         let unifiEventSource = null;
         window.unifiWanDataStore = null;
-        window.currentUnifiIsp = 'all';
-        window.currentUnifiTimeRange = '1D';
+        window.currentUnifiContext = 'internet'; // 'internet' | 'wifi' | 'fluxos'
+        window.currentUnifiIsp = 'all';         // Filtro de ISP, Banda ou Protocolo
+        window.currentUnifiMetric = 'default';   // Métrica selecionada no dropdown central
+        window.currentUnifiTimeRange = '1D';     // '1h' | '1D' | '1S' | '1M'
+        window.unifiSeriesVisibility = {
+            latency: true,
+            loss: true,
+            conns: false
+        };
 
+        // 1. Alterna o Contexto Ativo: Internet | WiFi | Fluxos
         function setUnifiActivityContext(ctx) {
-            const btns = {
-                internet: document.getElementById('unifiCtxBtnInternet'),
-                wifi: document.getElementById('unifiCtxBtnWifi'),
-                fluxos: document.getElementById('unifiCtxBtnFluxos')
-            };
-            Object.keys(btns).forEach(key => {
-                const el = btns[key];
-                if (!el) return;
-                if (key === ctx) {
-                    el.className = 'px-2.5 py-1 font-semibold text-sky-400 bg-sky-500/10 rounded-md transition-colors';
+            window.currentUnifiContext = ctx;
+            window.currentUnifiIsp = 'all';
+            window.currentUnifiMetric = 'default';
+
+            const tabs = ['internet', 'wifi', 'fluxos'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`unifiCtxBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (!btn) return;
+                if (t === ctx) {
+                    btn.className = 'px-2.5 py-1 font-semibold text-sky-400 bg-sky-500/10 rounded-md transition-colors';
                 } else {
-                    el.className = 'px-2.5 py-1 font-medium text-slate-400 hover:text-slate-200 rounded-md transition-colors';
+                    btn.className = 'px-2.5 py-1 font-medium text-slate-400 hover:text-slate-200 rounded-md transition-colors';
                 }
             });
+
+            // Atualiza menus dropdowns dependentes de contexto
+            renderUnifiIspDropdownMenu(ctx);
+            renderUnifiMetricDropdownMenu(ctx);
+            renderUnifiSeriesCheckboxes(ctx);
+            renderUnifiGanttBars(ctx);
+
+            // Re-renderiza o gráfico com os novos dados do contexto
+            updateUnifiChartData();
+
+            if (window.lucide) {
+                setTimeout(() => lucide.createIcons(), 50);
+            }
         }
 
+        // 2. Dropdown Secundário (ISPs / Bandas / Protocolos)
         function toggleUnifiIspDropdown() {
             const menu = document.getElementById('unifiIspDropdownMenu');
             if (menu) menu.classList.toggle('hidden');
+            const metricMenu = document.getElementById('unifiMetricDropdownMenu');
+            if (metricMenu) metricMenu.classList.add('hidden');
+        }
+
+        function renderUnifiIspDropdownMenu(ctx) {
+            const labelEl = document.getElementById('unifiSelectedIspLabel');
+            const menuEl = document.getElementById('unifiIspDropdownMenu');
+            if (!menuEl) return;
+
+            if (ctx === 'internet') {
+                if (labelEl) labelEl.textContent = 'Todos os ISPs';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiIsp('all')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Todos os ISPs</span>
+                        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('samm')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Samm Tecnologia (MEGA)</span>
+                        <span class="text-[10px] font-mono text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-800/40">WAN 2</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('vivo')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Vivo Fibra</span>
+                        <span class="text-[10px] font-mono text-emerald-400 bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-800/40">WAN 1</span>
+                    </button>
+                `;
+            } else if (ctx === 'wifi') {
+                if (labelEl) labelEl.textContent = 'Todas as Bandas';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiIsp('all')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Todas as Bandas (2.4G & 5G)</span>
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('5g')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Banda 5 GHz (Alta Performance)</span>
+                        <span class="text-[10px] font-mono text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800/40">5 GHz</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('2g')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Banda 2.4 GHz (IoT & Cobertura)</span>
+                        <span class="text-[10px] font-mono text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-800/40">2.4 GHz</span>
+                    </button>
+                `;
+            } else if (ctx === 'fluxos') {
+                if (labelEl) labelEl.textContent = 'Todos os Protocolos';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiIsp('all')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Todos os Protocolos</span>
+                        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('tcp')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Sessões TCP (Web / SSH / TLS)</span>
+                        <span class="text-[10px] font-mono text-emerald-400 bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-800/40">TCP</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiIsp('udp')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Sessões UDP (DNS / VoIP / Streaming)</span>
+                        <span class="text-[10px] font-mono text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/40">UDP</span>
+                    </button>
+                `;
+            }
         }
 
         function selectUnifiIsp(ispKey) {
@@ -6828,44 +6942,173 @@
             if (menu) menu.classList.add('hidden');
 
             const labelEl = document.getElementById('unifiSelectedIspLabel');
+            const ctx = window.currentUnifiContext || 'internet';
             if (labelEl) {
-                if (ispKey === 'all') labelEl.textContent = 'Todos os ISPs';
-                else if (ispKey === 'samm') labelEl.textContent = 'Samm Tecnologia (MEGA)';
-                else if (ispKey === 'vivo') labelEl.textContent = 'Vivo Fibra';
+                if (ctx === 'internet') {
+                    if (ispKey === 'all') labelEl.textContent = 'Todos os ISPs';
+                    else if (ispKey === 'samm') labelEl.textContent = 'Samm Tecnologia (MEGA)';
+                    else if (ispKey === 'vivo') labelEl.textContent = 'Vivo Fibra';
+                } else if (ctx === 'wifi') {
+                    if (ispKey === 'all') labelEl.textContent = 'Todas as Bandas';
+                    else if (ispKey === '5g') labelEl.textContent = 'Banda 5 GHz';
+                    else if (ispKey === '2g') labelEl.textContent = 'Banda 2.4 GHz';
+                } else if (ctx === 'fluxos') {
+                    if (ispKey === 'all') labelEl.textContent = 'Todos os Protocolos';
+                    else if (ispKey === 'tcp') labelEl.textContent = 'Sessões TCP';
+                    else if (ispKey === 'udp') labelEl.textContent = 'Sessões UDP';
+                }
             }
 
-            if (!chartUnifiWanTimeline) return;
+            updateUnifiChartData();
+        }
 
-            const store = window.unifiWanDataStore;
-            if (store && store.isps && store.isps[ispKey]) {
-                const ispData = store.isps[ispKey];
-                chartUnifiWanTimeline.data.datasets[0].data = ispData.download_mbps || [];
-                if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = ispData.latency_ms || [];
-                if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = ispData.packet_loss_pct || [];
-                chartUnifiWanTimeline.update();
-            } else {
-                const baseDl = [62.4, 88.5, 76.1, 115.8, 84.2, 98.6, 104.3, 168.5, 34.2, 18.5, 12.0, 8.4, 5.2, 4.1, 3.8, 6.5, 38.2, 45.1, 78.4, 94.2, 138.6, 154.2, 168.0, 142.5];
-                const baseLat = [11.8, 12.2, 11.5, 12.8, 12.4, 34.8, 12.1, 11.9, 43.0, 12.4, 11.8, 11.6, 11.5, 11.4, 11.5, 11.6, 38.2, 12.0, 11.9, 12.4, 12.1, 11.8, 12.2, 11.8];
-                const baseLoss = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        // 3. Dropdown Central (Atividade / Métrica de Rede)
+        function toggleUnifiMetricDropdown() {
+            const menu = document.getElementById('unifiMetricDropdownMenu');
+            if (menu) menu.classList.toggle('hidden');
+            const ispMenu = document.getElementById('unifiIspDropdownMenu');
+            if (ispMenu) ispMenu.classList.add('hidden');
+        }
 
-                if (ispKey === 'samm') {
-                    chartUnifiWanTimeline.data.datasets[0].data = baseDl.map(v => Math.round(v * 0.35 * 10) / 10);
-                    if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = baseLat;
-                    if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = baseLoss;
-                } else if (ispKey === 'vivo') {
-                    chartUnifiWanTimeline.data.datasets[0].data = baseDl.map(v => Math.round(v * 0.65 * 10) / 10);
-                    if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = baseLat.map(v => v > 20 ? 14.2 : v);
-                    if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = baseLoss.map(() => 0.0);
-                } else {
-                    chartUnifiWanTimeline.data.datasets[0].data = baseDl;
-                    if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = baseLat;
-                    if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = baseLoss;
-                }
-                chartUnifiWanTimeline.update();
+        function renderUnifiMetricDropdownMenu(ctx) {
+            const labelEl = document.getElementById('unifiMetricLabel');
+            const menuEl = document.getElementById('unifiMetricDropdownMenu');
+            if (!menuEl) return;
+
+            if (ctx === 'internet') {
+                if (labelEl) labelEl.textContent = 'Atividade de Internet';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiMetric('default')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Atividade de Internet (Geral)</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('traffic')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Taxa de Download & Upload</span>
+                        <span class="text-[10px] font-mono text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800/40">Mbps</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('quality')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Qualidade & Latência WAN</span>
+                        <span class="text-[10px] font-mono text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-800/40">ms</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('conns')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Volume de Conexões Ativas</span>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded border border-slate-700/60">Sessions</span>
+                    </button>
+                `;
+            } else if (ctx === 'wifi') {
+                if (labelEl) labelEl.textContent = 'Experiência Wi-Fi';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiMetric('default')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Experiência Wi-Fi (Geral)</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('traffic')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Taxa de Dados Wi-Fi</span>
+                        <span class="text-[10px] font-mono text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800/40">Mbps</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('retries')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Retransmissões (Tx Retries & Ruído)</span>
+                        <span class="text-[10px] font-mono text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-800/40">% Retries</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('clients')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Distribuição de Clientes Ativos</span>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded border border-slate-700/60">138 Clientes</span>
+                    </button>
+                `;
+            } else if (ctx === 'fluxos') {
+                if (labelEl) labelEl.textContent = 'Fluxos de Rede';
+                menuEl.innerHTML = `
+                    <button type="button" onclick="selectUnifiMetric('default')" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Fluxos & Sessões de Rede (Geral)</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('throughput')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Throughput por Sessão (DPI)</span>
+                        <span class="text-[10px] font-mono text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800/40">Mbps</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('newconns')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Novas Conexões por Segundo</span>
+                        <span class="text-[10px] font-mono text-emerald-400 bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-800/40">conn/s</span>
+                    </button>
+                    <button type="button" onclick="selectUnifiMetric('drops')" class="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                        <span>Segurança & Bloqueios Firewall</span>
+                        <span class="text-[10px] font-mono text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-800/40">Drops</span>
+                    </button>
+                `;
             }
         }
 
+        function selectUnifiMetric(metricKey) {
+            window.currentUnifiMetric = metricKey;
+            const menu = document.getElementById('unifiMetricDropdownMenu');
+            if (menu) menu.classList.add('hidden');
+
+            const labelEl = document.getElementById('unifiMetricLabel');
+            const ctx = window.currentUnifiContext || 'internet';
+
+            if (ctx === 'internet') {
+                if (metricKey === 'default') labelEl.textContent = 'Atividade de Internet';
+                else if (metricKey === 'traffic') labelEl.textContent = 'Taxa de Download & Upload';
+                else if (metricKey === 'quality') labelEl.textContent = 'Qualidade & Latência WAN';
+                else if (metricKey === 'conns') labelEl.textContent = 'Volume de Conexões';
+            } else if (ctx === 'wifi') {
+                if (metricKey === 'default') labelEl.textContent = 'Experiência Wi-Fi';
+                else if (metricKey === 'traffic') labelEl.textContent = 'Taxa de Dados Wi-Fi';
+                else if (metricKey === 'retries') labelEl.textContent = 'Retransmissões (Retries)';
+                else if (metricKey === 'clients') labelEl.textContent = 'Clientes por AP';
+            } else if (ctx === 'fluxos') {
+                if (metricKey === 'default') labelEl.textContent = 'Fluxos de Rede';
+                else if (metricKey === 'throughput') labelEl.textContent = 'Throughput DPI';
+                else if (metricKey === 'newconns') labelEl.textContent = 'Novas Conexões/s';
+                else if (metricKey === 'drops') labelEl.textContent = 'Segurança Firewall';
+            }
+
+            updateUnifiChartData();
+        }
+
+        // 4. Toggles das Séries de Dados
+        function renderUnifiSeriesCheckboxes(ctx) {
+            const text1 = document.getElementById('unifiSeriesText1');
+            const text2 = document.getElementById('unifiSeriesText2');
+            const text3 = document.getElementById('unifiSeriesText3');
+
+            if (ctx === 'internet') {
+                if (text1) text1.textContent = 'Latência Média';
+                if (text2) text2.textContent = 'Perda de Pacotes';
+                if (text3) text3.textContent = 'Conexões';
+            } else if (ctx === 'wifi') {
+                if (text1) text1.textContent = 'Latência Wi-Fi';
+                if (text2) text2.textContent = 'Retries (%)';
+                if (text3) text3.textContent = 'Clientes Wi-Fi';
+            } else if (ctx === 'fluxos') {
+                if (text1) text1.textContent = 'Novas Conexões/s';
+                if (text2) text2.textContent = 'Bloqueios Firewall';
+                if (text3) text3.textContent = 'Throughput DPI';
+            }
+
+            const tLat = document.getElementById('unifiToggleLatency');
+            const tLoss = document.getElementById('unifiToggleLoss');
+            const tConns = document.getElementById('unifiToggleConns');
+            if (tLat) tLat.checked = window.unifiSeriesVisibility.latency;
+            if (tLoss) tLoss.checked = window.unifiSeriesVisibility.loss;
+            if (tConns) tConns.checked = window.unifiSeriesVisibility.conns;
+
+            updateCheckboxLabelStyles();
+        }
+
+        function updateCheckboxLabelStyles() {
+            const lLat = document.getElementById('unifiToggleLatencyLabel');
+            const lLoss = document.getElementById('unifiToggleLossLabel');
+            const lConns = document.getElementById('unifiToggleConnsLabel');
+            if (lLat) lLat.className = `flex items-center gap-1.5 cursor-pointer select-none font-medium transition-colors ${window.unifiSeriesVisibility.latency ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-300'}`;
+            if (lLoss) lLoss.className = `flex items-center gap-1.5 cursor-pointer select-none font-medium transition-colors ${window.unifiSeriesVisibility.loss ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-300'}`;
+            if (lConns) lConns.className = `flex items-center gap-1.5 cursor-pointer select-none font-medium transition-colors ${window.unifiSeriesVisibility.conns ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-300'}`;
+        }
+
         function toggleUnifiSeries(seriesKey, isChecked) {
+            window.unifiSeriesVisibility[seriesKey] = isChecked;
+            updateCheckboxLabelStyles();
+
             if (!chartUnifiWanTimeline) return;
             if (seriesKey === 'latency') {
                 chartUnifiWanTimeline.setDatasetVisibility(1, isChecked);
@@ -6877,6 +7120,7 @@
             chartUnifiWanTimeline.update();
         }
 
+        // 5. Seletor de Intervalo de Tempo: 1h | 1D | 1S | 1M
         function setUnifiTimeRange(rangeKey) {
             window.currentUnifiTimeRange = rangeKey;
             ['1h', '1D', '1S', '1M'].forEach(k => {
@@ -6889,111 +7133,428 @@
                 }
             });
 
+            updateUnifiChartData();
+        }
+
+        // 6. Barras Gantt Inferiores (Disponibilidade dos Componentes)
+        function renderUnifiGanttBars(ctx) {
+            const container = document.getElementById('unifiGanttBarsContainer');
+            if (!container) return;
+
+            if (ctx === 'internet') {
+                container.innerHTML = `
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="Samm Tecnologia E Telecomunicacoes S.A (MEGA) - 187.120.7.126 | Uptime: 99.93% | Evento: Pico transitório de latência (43 ms) às 21:00">
+                        <div class="w-4 h-4 rounded-full border-2 border-[#c084fc] flex items-center justify-center shrink-0">
+                            <div class="w-1.5 h-1.5 rounded-full bg-[#c084fc]"></div>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex relative shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-l-full" style="width: 33.3%"></div>
+                            <div class="h-full bg-amber-400 shadow-sm relative group-hover:animate-pulse" style="width: 1.8%" title="Pico de latência 43 ms às 21:00"></div>
+                            <div class="h-full bg-emerald-500 rounded-r-full flex-1"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-purple-400">WAN 2 (Samm)</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="Vivo Fibra - 187.9.95.202 | Uptime: 100.0% | Conexão 100% contínua e estável">
+                        <div class="w-4 h-4 flex items-center justify-center shrink-0 text-[#c084fc]">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="6" r="2.8" />
+                                <path d="M5.5 12.5C7.2 10 10 9.5 12 9.5s4.8.5 6.5 3c.4.6.2 1.3-.4 1.6-.6.3-1.3.1-1.6-.4-.9-1.2-2.4-1.9-4.5-1.9s-3.6.7-4.5 1.9c-.3.5-1 .7-1.6.4-.6-.3-.8-1-.4-1.6z"/>
+                                <path d="M10 13.5h4V21a1 1 0 01-1 1h-2a1 1 0 01-1-1v-7.5z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-emerald-400">WAN 1 (Vivo)</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                `;
+            } else if (ctx === 'wifi') {
+                container.innerHTML = `
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="UniFi 6 Lite (4º Andar Corporativo) - 192.168.99.30 | 72 Clientes Ativos | Uptime: 99.99%">
+                        <div class="w-4 h-4 rounded-full border-2 border-cyan-400 flex items-center justify-center shrink-0">
+                            <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-cyan-400">U6-Lite 4º Andar</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="UniFi 6 Pro (Térreo Recepção) - 192.168.99.31 | 66 Clientes Ativos | Uptime: 100.0%">
+                        <div class="w-4 h-4 rounded-full border-2 border-blue-400 flex items-center justify-center shrink-0">
+                            <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-blue-400">U6-Pro Recepção</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                `;
+            } else if (ctx === 'fluxos') {
+                container.innerHTML = `
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="Gateway UDM Pro - Stateful DPI & Firewall Ativo | 2.140 Fluxos Concorrentes">
+                        <div class="w-4 h-4 rounded-full border-2 border-emerald-400 flex items-center justify-center shrink-0">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-emerald-400">Gateway UDM-Pro</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                    <div class="flex items-center gap-3 group cursor-pointer hover:bg-slate-800/30 px-2 py-1 rounded-lg transition-colors"
+                        title="USW-Pro-24-PoE - Switch Core de Agregação | Backplane GbE/10G SFP+">
+                        <div class="w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center shrink-0">
+                            <div class="w-1.5 h-1.5 rounded-full bg-sky-400"></div>
+                        </div>
+                        <div class="flex-1 h-2 bg-slate-800/90 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-sky-400">Switch USW Core</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0"></i>
+                    </div>
+                `;
+            }
+        }
+
+        // 7. Atualiza Rodapé de Telemetria Instantânea
+        function updateUnifiTelemetryFooter() {
+            const ctx = window.currentUnifiContext || 'internet';
+            const tTitle1 = document.getElementById('unifiChartTelemTitle1');
+            const tVal1 = document.getElementById('unifiChartPeakTraffic');
+            const tTitle2 = document.getElementById('unifiChartTelemTitle2');
+            const tVal2 = document.getElementById('unifiChartLatencyDisplay');
+            const tTitle3 = document.getElementById('unifiChartTelemTitle3');
+            const tVal3 = document.getElementById('unifiChartLossDisplay');
+            const tFooter = document.getElementById('unifiChartTelemFooter');
+
+            if (ctx === 'internet') {
+                if (tTitle1) tTitle1.textContent = 'Taxa Instantânea:';
+                if (tVal1) tVal1.textContent = '↓ 142.5 Mbps | ↑ 46.8 Mbps';
+                if (tTitle2) tTitle2.textContent = 'Latência WAN:';
+                if (tVal2) tVal2.textContent = '11.8 ms';
+                if (tTitle3) tTitle3.textContent = 'Perda de Pacotes:';
+                if (tVal3) tVal3.textContent = '0.0%';
+                if (tFooter) tFooter.textContent = 'Telemetria em Tempo Real (UDM Pro 192.168.99.1)';
+            } else if (ctx === 'wifi') {
+                if (tTitle1) tTitle1.textContent = 'Tráfego Wi-Fi:';
+                if (tVal1) tVal1.textContent = '↓ 108.2 Mbps | ↑ 34.1 Mbps';
+                if (tTitle2) tTitle2.textContent = 'Satisfação Wi-Fi:';
+                if (tVal2) tVal2.textContent = '98%';
+                if (tTitle3) tTitle3.textContent = 'Tx Retries:';
+                if (tVal3) tVal3.textContent = '1.4%';
+                if (tFooter) tFooter.textContent = 'Telemetria Wi-Fi (U6-Lite & U6-Pro)';
+            } else if (ctx === 'fluxos') {
+                if (tTitle1) tTitle1.textContent = 'Fluxos Ativos:';
+                if (tVal1) tVal1.textContent = '2.140 TCP/UDP';
+                if (tTitle2) tTitle2.textContent = 'Novas Conexões:';
+                if (tVal2) tVal2.textContent = '62/s';
+                if (tTitle3) tTitle3.textContent = 'Bloqueios Firewall:';
+                if (tVal3) tVal3.textContent = '0 descartes';
+                if (tFooter) tFooter.textContent = 'Inspeção de Fluxos & Sessões Stateful';
+            }
+        }
+
+        // 8. Mecanismo Unificado de Atualização do Gráfico UniFi
+        function updateUnifiChartData() {
             if (!chartUnifiWanTimeline) return;
 
-            if (rangeKey === '1h') {
-                const labels1h = [];
-                const dl1h = [];
-                const lat1h = [];
-                const loss1h = [];
-                const conns1h = [];
+            const ctx = window.currentUnifiContext || 'internet';
+            const range = window.currentUnifiTimeRange || '1D';
+            const filter = window.currentUnifiIsp || 'all';
+
+            // Geração dos Rótulos
+            let labels = [];
+            if (range === '1h') {
                 const now = new Date();
                 for (let i = 11; i >= 0; i--) {
                     const d = new Date(now.getTime() - i * 5 * 60 * 1000);
-                    labels1h.push(d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
-                    dl1h.push(Math.round((135 + Math.random() * 25) * 10) / 10);
-                    lat1h.push(Math.round((11.4 + Math.random() * 1.0) * 10) / 10);
-                    loss1h.push(0.0);
-                    conns1h.push(148 + Math.floor(Math.random() * 6));
+                    labels.push(d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
                 }
-                labels1h[labels1h.length - 1] = 'Agora';
-                chartUnifiWanTimeline.data.labels = labels1h;
-                chartUnifiWanTimeline.data.datasets[0].data = dl1h;
-                if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = lat1h;
-                if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = loss1h;
-                if (chartUnifiWanTimeline.data.datasets[3]) chartUnifiWanTimeline.data.datasets[3].data = conns1h;
-                chartUnifiWanTimeline.update();
-            } else if (rangeKey === '1D') {
-                const timeLabels24h = [
+                labels[labels.length - 1] = 'Agora';
+            } else if (range === '1D') {
+                labels = [
                     "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM",
                     "10 PM", "11 PM", "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM",
                     "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "Agora"
                 ];
-                chartUnifiWanTimeline.data.labels = timeLabels24h;
-                selectUnifiIsp(window.currentUnifiIsp || 'all');
-            } else if (rangeKey === '1S') {
-                const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Hoje'];
-                chartUnifiWanTimeline.data.labels = days;
-                chartUnifiWanTimeline.data.datasets[0].data = [128.4, 142.1, 158.6, 164.2, 172.0, 94.5, 142.5];
-                if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = [12.1, 11.9, 12.4, 13.0, 12.2, 11.8, 11.8];
-                if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = [0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0];
-                if (chartUnifiWanTimeline.data.datasets[3]) chartUnifiWanTimeline.data.datasets[3].data = [145, 150, 153, 148, 152, 98, 153];
-                chartUnifiWanTimeline.update();
-            } else if (rangeKey === '1M') {
-                const weeks = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
-                chartUnifiWanTimeline.data.labels = weeks;
-                chartUnifiWanTimeline.data.datasets[0].data = [138.5, 149.2, 154.0, 162.8];
-                if (chartUnifiWanTimeline.data.datasets[1]) chartUnifiWanTimeline.data.datasets[1].data = [12.0, 12.2, 11.9, 11.8];
-                if (chartUnifiWanTimeline.data.datasets[2]) chartUnifiWanTimeline.data.datasets[2].data = [0.1, 0.0, 0.2, 0.0];
-                if (chartUnifiWanTimeline.data.datasets[3]) chartUnifiWanTimeline.data.datasets[3].data = [142, 148, 151, 153];
-                chartUnifiWanTimeline.update();
+            } else if (range === '1S') {
+                labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Hoje'];
+            } else if (range === '1M') {
+                labels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
             }
+
+            let ds0 = [], ds1 = [], ds2 = [], ds3 = [];
+            let ds0Label = '', ds1Label = '', ds2Label = '', ds3Label = '';
+            let yTitle = 'ms', y1Title = 'Mbps';
+            let yMax = 120, y1Max = 189;
+
+            if (ctx === 'internet') {
+                ds0Label = 'Throughput (Mbps)';
+                ds1Label = 'Latência Média (ms)';
+                ds2Label = 'Perda de Pacotes (%)';
+                ds3Label = 'Conexões Ativas';
+                yTitle = 'ms';
+                y1Title = 'Mbps';
+                yMax = 120;
+                y1Max = 189;
+
+                const baseDl = [62.4, 88.5, 76.1, 115.8, 84.2, 98.6, 104.3, 168.5, 34.2, 18.5, 12.0, 8.4, 5.2, 4.1, 3.8, 6.5, 38.2, 45.1, 78.4, 94.2, 138.6, 154.2, 168.0, 142.5];
+                const baseLat = [11.8, 12.2, 11.5, 12.8, 12.4, 34.8, 12.1, 11.9, 43.0, 12.4, 11.8, 11.6, 11.5, 11.4, 11.5, 11.6, 38.2, 12.0, 11.9, 12.4, 12.1, 11.8, 12.2, 11.8];
+                const baseLoss = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+                const baseConns = [142, 148, 150, 156, 152, 149, 153, 164, 120, 80, 45, 30, 22, 18, 16, 25, 88, 110, 140, 148, 155, 158, 162, 153];
+
+                let mult = 1.0;
+                if (filter === 'samm') mult = 0.35;
+                else if (filter === 'vivo') mult = 0.65;
+
+                if (range === '1h') {
+                    for (let i = 0; i < 12; i++) {
+                        ds0.push(Math.round((138 * mult + (i % 3) * 4) * 10) / 10);
+                        ds1.push(filter === 'vivo' ? 11.4 : 11.8);
+                        ds2.push(0.0);
+                        ds3.push(148 + (i % 5));
+                    }
+                } else if (range === '1D') {
+                    ds0 = baseDl.map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = baseLat.map(v => filter === 'vivo' ? (v > 20 ? 12.2 : v) : v);
+                    ds2 = baseLoss.map(v => filter === 'vivo' ? 0.0 : v);
+                    ds3 = baseConns.map(v => Math.round(v * mult));
+                } else if (range === '1S') {
+                    ds0 = [128.4, 142.1, 158.6, 164.2, 172.0, 94.5, 142.5].map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = [12.1, 11.9, 12.4, 13.0, 12.2, 11.8, 11.8];
+                    ds2 = [0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0].map(v => filter === 'vivo' ? 0.0 : v);
+                    ds3 = [145, 150, 153, 148, 152, 98, 153];
+                } else if (range === '1M') {
+                    ds0 = [138.5, 149.2, 154.0, 162.8].map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = [12.0, 12.2, 11.9, 11.8];
+                    ds2 = [0.1, 0.0, 0.2, 0.0].map(v => filter === 'vivo' ? 0.0 : v);
+                    ds3 = [142, 148, 151, 153];
+                }
+
+            } else if (ctx === 'wifi') {
+                ds0Label = 'Tráfego Wi-Fi (Mbps)';
+                ds1Label = 'Latência Wi-Fi (ms)';
+                ds2Label = 'Retransmissões (%)';
+                ds3Label = 'Clientes Wi-Fi';
+                yTitle = 'ms / %';
+                y1Title = 'Mbps';
+                yMax = 20;
+                y1Max = 150;
+
+                let mult = 1.0;
+                if (filter === '5g') mult = 0.78;
+                else if (filter === '2g') mult = 0.22;
+
+                const baseWifiDl = [48.2, 65.1, 58.4, 88.2, 62.1, 74.5, 82.0, 124.6, 26.5, 14.2, 8.5, 6.2, 3.8, 2.9, 2.4, 4.8, 28.5, 34.2, 62.4, 78.5, 108.2, 118.5, 126.0, 108.2];
+                const baseWifiLat = [4.2, 4.5, 4.1, 4.8, 5.2, 6.1, 5.0, 5.8, 4.9, 4.4, 4.2, 4.1, 4.0, 3.9, 3.9, 4.1, 4.5, 4.8, 5.1, 5.5, 5.8, 6.2, 5.9, 5.4];
+                const baseWifiRetries = [1.2, 1.4, 1.1, 1.8, 1.5, 2.1, 1.9, 2.6, 1.0, 0.8, 0.5, 0.4, 0.4, 0.3, 0.3, 0.4, 1.1, 1.3, 1.7, 2.0, 2.4, 2.7, 2.5, 1.4];
+                const baseWifiCli = [122, 130, 134, 138, 135, 131, 128, 138, 92, 54, 28, 18, 12, 9, 8, 15, 62, 85, 118, 128, 136, 139, 141, 138];
+
+                if (range === '1h') {
+                    for (let i = 0; i < 12; i++) {
+                        ds0.push(Math.round((105 * mult + (i % 3) * 3) * 10) / 10);
+                        ds1.push(Math.round((5.2 + (i % 2) * 0.4) * 10) / 10);
+                        ds2.push(1.4);
+                        ds3.push(Math.round(138 * mult));
+                    }
+                } else if (range === '1D') {
+                    ds0 = baseWifiDl.map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = baseWifiLat;
+                    ds2 = baseWifiRetries;
+                    ds3 = baseWifiCli.map(v => Math.round(v * mult));
+                } else if (range === '1S') {
+                    ds0 = [98.2, 112.5, 124.0, 128.6, 134.2, 68.4, 108.2].map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = [5.1, 5.4, 5.2, 5.6, 5.5, 4.8, 5.4];
+                    ds2 = [1.5, 1.8, 1.6, 1.9, 2.1, 1.2, 1.4];
+                    ds3 = [135, 138, 140, 138, 141, 75, 138].map(v => Math.round(v * mult));
+                } else if (range === '1M') {
+                    ds0 = [104.2, 114.8, 120.5, 128.0].map(v => Math.round(v * mult * 10) / 10);
+                    ds1 = [5.0, 5.2, 5.1, 5.4];
+                    ds2 = [1.4, 1.6, 1.5, 1.4];
+                    ds3 = [132, 136, 138, 138].map(v => Math.round(v * mult));
+                }
+
+            } else if (ctx === 'fluxos') {
+                ds0Label = 'Fluxos Concorrentes Ativos';
+                ds1Label = 'Novas Conexões/s (conn/s)';
+                ds2Label = 'Descartes / Bloqueios Firewall';
+                ds3Label = 'Throughput DPI (Mbps)';
+                yTitle = 'conn/s';
+                y1Title = 'Fluxos / Sessões';
+                yMax = 120;
+                y1Max = 3000;
+
+                let mult = 1.0;
+                if (filter === 'tcp') mult = 0.78;
+                else if (filter === 'udp') mult = 0.22;
+
+                const baseSessions = [1850, 2100, 2040, 2380, 2190, 2250, 2310, 2480, 1420, 890, 520, 340, 210, 180, 160, 280, 940, 1420, 1980, 2180, 2340, 2420, 2450, 2140];
+                const baseNewConns = [52, 64, 58, 78, 66, 72, 75, 88, 38, 22, 14, 9, 6, 5, 5, 8, 32, 44, 58, 68, 80, 84, 86, 62];
+                const baseDrops = [0, 0, 0, 1, 0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 0];
+                const baseDpiDl = [62, 88, 76, 115, 84, 98, 104, 168, 34, 18, 12, 8, 5, 4, 3, 6, 38, 45, 78, 94, 138, 154, 168, 142];
+
+                if (range === '1h') {
+                    for (let i = 0; i < 12; i++) {
+                        ds0.push(Math.round(2140 * mult + (i % 4) * 20));
+                        ds1.push(58 + (i % 5) * 2);
+                        ds2.push(0);
+                        ds3.push(142);
+                    }
+                } else if (range === '1D') {
+                    ds0 = baseSessions.map(v => Math.round(v * mult));
+                    ds1 = baseNewConns.map(v => Math.round(v * mult));
+                    ds2 = baseDrops;
+                    ds3 = baseDpiDl.map(v => Math.round(v * mult));
+                } else if (range === '1S') {
+                    ds0 = [1950, 2120, 2280, 2340, 2410, 1350, 2140].map(v => Math.round(v * mult));
+                    ds1 = [58, 62, 65, 70, 72, 42, 62];
+                    ds2 = [0, 1, 0, 2, 0, 0, 0];
+                    ds3 = [128, 142, 158, 164, 172, 94, 142].map(v => Math.round(v * mult));
+                } else if (range === '1M') {
+                    ds0 = [2050, 2180, 2250, 2380].map(v => Math.round(v * mult));
+                    ds1 = [60, 64, 66, 68];
+                    ds2 = [1, 2, 0, 1];
+                    ds3 = [138, 149, 154, 162].map(v => Math.round(v * mult));
+                }
+            }
+
+            chartUnifiWanTimeline.data.labels = labels;
+            chartUnifiWanTimeline.data.datasets[0].label = ds0Label;
+            chartUnifiWanTimeline.data.datasets[0].data = ds0;
+
+            if (chartUnifiWanTimeline.data.datasets[1]) {
+                chartUnifiWanTimeline.data.datasets[1].label = ds1Label;
+                chartUnifiWanTimeline.data.datasets[1].data = ds1;
+            }
+            if (chartUnifiWanTimeline.data.datasets[2]) {
+                chartUnifiWanTimeline.data.datasets[2].label = ds2Label;
+                chartUnifiWanTimeline.data.datasets[2].data = ds2;
+            }
+            if (chartUnifiWanTimeline.data.datasets[3]) {
+                chartUnifiWanTimeline.data.datasets[3].label = ds3Label;
+                chartUnifiWanTimeline.data.datasets[3].data = ds3;
+            }
+
+            // Aplica visibilidade das séries salvas
+            chartUnifiWanTimeline.setDatasetVisibility(1, window.unifiSeriesVisibility.latency);
+            chartUnifiWanTimeline.setDatasetVisibility(2, window.unifiSeriesVisibility.loss);
+            chartUnifiWanTimeline.setDatasetVisibility(3, window.unifiSeriesVisibility.conns);
+
+            // Ajusta limites dos eixos sincronizados
+            if (chartUnifiWanTimeline.options.scales.y) {
+                chartUnifiWanTimeline.options.scales.y.max = yMax;
+                if (chartUnifiWanTimeline.options.scales.y.title) {
+                    chartUnifiWanTimeline.options.scales.y.title.text = yTitle;
+                }
+            }
+            if (chartUnifiWanTimeline.options.scales.y1) {
+                chartUnifiWanTimeline.options.scales.y1.max = y1Max;
+                if (chartUnifiWanTimeline.options.scales.y1.title) {
+                    chartUnifiWanTimeline.options.scales.y1.title.text = y1Title;
+                }
+            }
+
+            chartUnifiWanTimeline.update();
+            updateUnifiTelemetryFooter();
         }
 
-        // Listener para fechar menu dropdown ao clicar fora
+        // Listener global para fechar menus ao clicar fora
         document.addEventListener('click', function(e) {
-            const container = document.getElementById('unifiIspDropdownContainer');
-            const menu = document.getElementById('unifiIspDropdownMenu');
-            if (container && menu && !container.contains(e.target)) {
-                menu.classList.add('hidden');
+            const ispContainer = document.getElementById('unifiIspDropdownContainer');
+            const ispMenu = document.getElementById('unifiIspDropdownMenu');
+            if (ispContainer && ispMenu && !ispContainer.contains(e.target)) {
+                ispMenu.classList.add('hidden');
+            }
+
+            const metricContainer = document.getElementById('unifiMetricDropdownContainer');
+            const metricMenu = document.getElementById('unifiMetricDropdownMenu');
+            if (metricContainer && metricMenu && !metricContainer.contains(e.target)) {
+                metricMenu.classList.add('hidden');
             }
         });
 
+        // 9. Pipeline de Stream SSE e Telemetria em Tempo Real
         function pushRealtimeChartTick(timestamp, dlMbps, ulMbps, latencyMs, lossPct, conns) {
             if (!chartUnifiWanTimeline) return;
+
+            // Se o usuário estiver no contexto internet, atualiza métricas instantâneas
+            if (window.currentUnifiContext === 'internet') {
+                const peakEl = document.getElementById('unifiChartPeakTraffic');
+                if (peakEl) {
+                    peakEl.textContent = `↓ ${Number(dlMbps).toFixed(1)} Mbps | ↑ ${Number(ulMbps).toFixed(1)} Mbps`;
+                }
+                const latEl = document.getElementById('unifiChartLatencyDisplay');
+                if (latEl && latencyMs !== undefined) {
+                    latEl.textContent = `${Number(latencyMs).toFixed(1)} ms`;
+                }
+                const lossEl = document.getElementById('unifiChartLossDisplay');
+                if (lossEl && lossPct !== undefined) {
+                    lossEl.textContent = `${Number(lossPct).toFixed(1)}%`;
+                }
+            }
+
+            // Se o contexto ativo não for internet, os ticks de WAN não sobrescrevem as curvas de Wi-Fi ou Fluxos
+            if (window.currentUnifiContext !== 'internet') return;
 
             const datasets = chartUnifiWanTimeline.data.datasets;
             const labels = chartUnifiWanTimeline.data.labels;
             const len = labels.length;
 
-            if (window.currentUnifiTimeRange === '1h') {
-                labels.push(timestamp);
-                datasets[0].data.push(dlMbps);
-                if (datasets[1]) datasets[1].data.push(latencyMs ?? 11.8);
-                if (datasets[2]) datasets[2].data.push(lossPct ?? 0.0);
-                if (datasets[3]) datasets[3].data.push(conns ?? 153);
+            let mult = 1.0;
+            if (window.currentUnifiIsp === 'samm') mult = 0.35;
+            else if (window.currentUnifiIsp === 'vivo') mult = 0.65;
 
-                while (labels.length > 20) {
-                    labels.shift();
-                    datasets[0].data.shift();
-                    if (datasets[1]) datasets[1].data.shift();
-                    if (datasets[2]) datasets[2].data.shift();
-                    if (datasets[3]) datasets[3].data.shift();
+            const effDl = Math.round(dlMbps * mult * 10) / 10;
+            const effLat = (window.currentUnifiIsp === 'vivo' && latencyMs > 20) ? 12.2 : (latencyMs ?? 11.8);
+            const effLoss = (window.currentUnifiIsp === 'vivo') ? 0.0 : (lossPct ?? 0.0);
+            const effConns = Math.round((conns ?? 153) * mult);
+
+            if (window.currentUnifiTimeRange === '1h') {
+                if (len > 0 && labels[len - 1] === 'Agora') {
+                    datasets[0].data[len - 1] = effDl;
+                    if (datasets[1]) datasets[1].data[len - 1] = effLat;
+                    if (datasets[2]) datasets[2].data[len - 1] = effLoss;
+                    if (datasets[3]) datasets[3].data[len - 1] = effConns;
+                } else {
+                    labels.push('Agora');
+                    datasets[0].data.push(effDl);
+                    if (datasets[1]) datasets[1].data.push(effLat);
+                    if (datasets[2]) datasets[2].data.push(effLoss);
+                    if (datasets[3]) datasets[3].data.push(effConns);
+                    while (labels.length > 12) {
+                        labels.shift();
+                        datasets[0].data.shift();
+                        if (datasets[1]) datasets[1].data.shift();
+                        if (datasets[2]) datasets[2].data.shift();
+                        if (datasets[3]) datasets[3].data.shift();
+                    }
                 }
-            } else {
-                // Modo 24h (1D): atualiza o último ponto ('Agora') suavemente
+            } else if (window.currentUnifiTimeRange === '1D') {
                 if (len > 0) {
-                    datasets[0].data[len - 1] = dlMbps;
-                    if (datasets[1] && latencyMs !== undefined) datasets[1].data[len - 1] = latencyMs;
-                    if (datasets[2] && lossPct !== undefined) datasets[2].data[len - 1] = lossPct;
-                    if (datasets[3] && conns !== undefined) datasets[3].data[len - 1] = conns;
+                    datasets[0].data[len - 1] = effDl;
+                    if (datasets[1] && latencyMs !== undefined) datasets[1].data[len - 1] = effLat;
+                    if (datasets[2] && lossPct !== undefined) datasets[2].data[len - 1] = effLoss;
+                    if (datasets[3] && conns !== undefined) datasets[3].data[len - 1] = effConns;
+                }
+            } else if (window.currentUnifiTimeRange === '1S') {
+                if (len > 0) {
+                    datasets[0].data[len - 1] = effDl;
+                    if (datasets[1] && latencyMs !== undefined) datasets[1].data[len - 1] = effLat;
+                    if (datasets[2] && lossPct !== undefined) datasets[2].data[len - 1] = effLoss;
+                    if (datasets[3] && conns !== undefined) datasets[3].data[len - 1] = effConns;
                 }
             }
 
             chartUnifiWanTimeline.update('none');
-
-            const peakEl = document.getElementById('unifiChartPeakTraffic');
-            if (peakEl) {
-                peakEl.textContent = `↓ ${Number(dlMbps).toFixed(1)} Mbps | ↑ ${Number(ulMbps).toFixed(1)} Mbps`;
-            }
-            const latEl = document.getElementById('unifiChartLatencyDisplay');
-            if (latEl && latencyMs !== undefined) {
-                latEl.textContent = `${Number(latencyMs).toFixed(1)} ms`;
-            }
-            const lossEl = document.getElementById('unifiChartLossDisplay');
-            if (lossEl && lossPct !== undefined) {
-                lossEl.textContent = `${Number(lossPct).toFixed(1)}%`;
-            }
         }
 
         function renderUnifiSignalQuality(sq) {
@@ -7263,8 +7824,8 @@
                 const wh = anaData.wan_history;
                 window.unifiWanDataStore = wh;
 
-                if (window.currentUnifiTimeRange === '1D') {
-                    selectUnifiIsp(window.currentUnifiIsp || 'all');
+                if (window.currentUnifiContext === 'internet') {
+                    updateUnifiChartData();
                 }
             }
 
