@@ -33,14 +33,27 @@ fi
 chmod 600 .env
 chmod 664 auth.db
 
-echo "[2/4] Parando contêineres antigos..."
-docker compose down
+if command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
+    echo "[2/4] Parando contêineres antigos..."
+    docker compose down || true
 
-echo "[3/4] Reconstruindo imagens e iniciando contêineres..."
-docker compose up -d --build
+    echo "[3/4] Reconstruindo imagens e iniciando contêineres..."
+    docker compose up -d --build
 
-echo "[4/4] Verificando status dos contêineres..."
-docker compose ps
+    echo "[4/4] Verificando status dos contêineres..."
+    docker compose ps
+fi
+
+if command -v systemctl > /dev/null 2>&1; then
+    if systemctl is-active --quiet painel_cyber.service; then
+        echo "Reiniciando serviço systemd painel_cyber..."
+        systemctl restart painel_cyber.service
+    fi
+    if systemctl is-active --quiet painel_admin.service; then
+        echo "Reiniciando serviço systemd painel_admin..."
+        systemctl restart painel_admin.service
+    fi
+fi
 
 if command -v nginx > /dev/null 2>&1; then
     echo "Recarregando Nginx..."
