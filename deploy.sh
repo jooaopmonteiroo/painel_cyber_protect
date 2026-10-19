@@ -61,7 +61,12 @@ if command -v nginx > /dev/null 2>&1; then
     systemctl reload nginx || systemctl restart nginx
 fi
 
+if command -v ufw > /dev/null 2>&1; then
+    ufw allow 8001/tcp > /dev/null 2>&1 || true
+fi
+
 echo "=========================================="
 echo "✅ DEPLOY CONCLUÍDO COM SUCESSO!"
-echo "Acesse: https://monitor.jmcyberprotect.tech"
+echo "Acesse o Painel SOC: https://monitor.jmcyberprotect.tech"
+echo "Acesse o Painel ADM: http://179.236.235.19:8001"
 echo "=========================================="

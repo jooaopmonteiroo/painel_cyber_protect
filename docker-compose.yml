@@ -31,8 +31,8 @@ services:
     expose:
       - "8001"
     ports:
-      # Apenas localhost (acessível via túnel SSH ou proxy autenticado com chave mestra)
-      - "127.0.0.1:8001:8001"
+      # Exposto externamente para acesso administrativo direto
+      - "8001:8001"
     volumes:
       - ./auth.db:/app/auth.db
       - ./.env:/app/.env

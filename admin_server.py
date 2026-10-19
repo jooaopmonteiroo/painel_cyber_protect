@@ -86,6 +86,11 @@ async def admin_index(request: Request):
         }
     )
 
+@app.get("/auth")
+async def admin_auth_get():
+    """Redireciona requisições GET em /auth para a raiz do painel administrativo."""
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
 @app.post("/auth")
 async def admin_auth_post(request: Request, master_key: str = Form(...)):
     """Valida a Chave Mestra informada e emite o cookie de sessão do console externo."""
