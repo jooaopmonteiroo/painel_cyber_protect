@@ -6,7 +6,7 @@ import time
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request, Query, Path, HTTPException, status, Depends, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
@@ -183,11 +183,11 @@ class LoginRequest(BaseModel):
 
 class IsolateEndpointRequest(BaseModel):
     reason: Optional[str] = Field("Ameaça identificada pelo analista de SOC", max_length=200)
-    incident_id: Optional[str] = Field(None, max_length=100)
+    incident_id: Optional[Union[str, int]] = Field(None)
 
 class AntivirusScanRequest(BaseModel):
     scan_type: str = Field("quick", pattern=r"^(quick|full|rapida|completa)$")
-    incident_id: Optional[str] = Field(None, max_length=100)
+    incident_id: Optional[Union[str, int]] = Field(None)
 
 class TogglePolicyRequest(BaseModel):
     enabled: bool
@@ -206,7 +206,7 @@ class AddBlockRuleRequest(BaseModel):
 
 class BlockUniFiClientRequest(BaseModel):
     reason: Optional[str] = Field("Banimento de estação via SOC", max_length=200)
-    incident_id: Optional[str] = Field(None, max_length=100)
+    incident_id: Optional[Union[str, int]] = Field(None)
 
 class IsolateVlanRequest(BaseModel):
     vlan_id: int = Field(999, ge=1, le=4094)
@@ -1066,12 +1066,13 @@ async def trigger_antivirus_scan_endpoint(
     [REMEDIAÇÃO] Força uma varredura antivírus rápida ou completa no endpoint remotamente.
     """
     client_ip = request.client.host if request.client else "127.0.0.1"
+    inc_id = str(body.incident_id) if body.incident_id is not None else None
     return await acronis.run_antivirus_scan(
         resource_id=resource_id,
         scan_type=body.scan_type,
         operator_username=user["username"],
         operator_ip=client_ip,
-        incident_id=body.incident_id
+        incident_id=inc_id
     )
 
 @app.post("/api/soc/devices/{resource_id}/apply_policy")

@@ -2324,15 +2324,26 @@ class AcronisClient:
         """
         clean_scan = "full" if str(scan_type).lower() in ("full", "completa") else "quick"
         resources = await self.get_resources()
-        res_info = next((r for r in resources if str(r.get("id")) == str(resource_id)), None)
-        res_name = res_info.get("name") if res_info else f"Endpoint-{resource_id[:8]}"
+        res_info = next(
+            (r for r in resources if str(r.get("id")) == str(resource_id) or 
+             str(r.get("name", "")).lower() == str(resource_id).lower() or 
+             str(r.get("hostname", "")).lower() == str(resource_id).lower()),
+            None
+        )
+        target_id = str(res_info.get("id")) if res_info and res_info.get("id") else str(resource_id)
+        if res_info and res_info.get("name"):
+            res_name = res_info.get("name")
+        elif str(resource_id).upper().startswith("JM") or ".jm.corp" in str(resource_id).lower():
+            res_name = str(resource_id)
+        else:
+            res_name = f"Endpoint-{target_id[:8]}"
 
         task_id = f"task-av-scan-{int(time.time())}"
 
-        soc_database.set_endpoint_scan_status(resource_id, res_name, clean_scan, "running", task_id)
+        soc_database.set_endpoint_scan_status(target_id, res_name, clean_scan, "running", task_id)
         soc_database.log_soc_action(
             action_type="antivirus_scan",
-            resource_id=resource_id,
+            resource_id=target_id,
             resource_name=res_name,
             incident_id=incident_id,
             operator_username=operator_username,
@@ -2355,10 +2366,10 @@ class AcronisClient:
             }
 
         candidate_endpoints = [
-            f"/api/agent_manager/v2/agents/{resource_id}/commands",
+            f"/api/agent_manager/v2/agents/{target_id}/commands",
             f"/api/policy_management/v2/commands",
             f"/api/task_manager/v2/tasks",
-            f"/api/agent_manager/v2/agents/{resource_id}/actions"
+            f"/api/agent_manager/v2/agents/{target_id}/actions"
         ]
 
         real_task_id = task_id
@@ -2367,7 +2378,7 @@ class AcronisClient:
                 body = {
                     "command": "run_scan",
                     "type": "run_scan",
-                    "resource_id": resource_id,
+                    "resource_id": target_id,
                     "parameters": {"scan_type": clean_scan}
                 }
                 resp = await self._api_request("POST", path, json=body)
@@ -2385,7 +2396,7 @@ class AcronisClient:
                 action="antivirus_scan",
                 target=res_name,
                 operator_ip=operator_ip,
-                parameters={"scan_type": clean_scan, "resource_id": resource_id, "incident_id": incident_id},
+                parameters={"scan_type": clean_scan, "resource_id": target_id, "incident_id": incident_id},
                 status="success",
                 task_id=real_task_id,
                 details=f"Comando de varredura antivírus ({clean_scan.upper()}) enviado para o agente."
@@ -2396,12 +2407,12 @@ class AcronisClient:
         return {
             "success": True,
             "action": "antivirus_scan",
-            "resource_id": resource_id,
+            "resource_id": target_id,
             "resource_name": res_name,
             "scan_type": clean_scan,
             "task_id": real_task_id,
             "status": "running",
-            "message": f"Ação Enviada com Sucesso: Varredura Antivírus ({clean_scan.upper()}) enfileirada no agente (Task {real_task_id})."
+            "message": f"Ação Enviada com Sucesso: Varredura Antivírus ({clean_scan.upper()}) enfileirada no agente '{res_name}' (Task {real_task_id})."
         }
 
     async def toggle_protection_policy(
