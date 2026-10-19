@@ -35,6 +35,7 @@ chmod 664 auth.db
 
 if command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
     echo "[2/4] Parando contêineres antigos..."
+    docker rm -f jm_cyber_protect_proxy > /dev/null 2>&1 || true
     docker compose down || true
 
     echo "[3/4] Reconstruindo imagens e iniciando contêineres..."
