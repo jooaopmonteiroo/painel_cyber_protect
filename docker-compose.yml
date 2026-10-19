@@ -1,77 +1,64 @@
 services:
-  # 1. Painel Principal de Monitoramento & API Proxy UniFi / Acronis
+  # 1. Painel Principal de Monitoramento (JM Cyber Protect SOC War Room)
   painel-cyber:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: jm_cyber_protect_dashboard
-    restart: unless-stopped
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips="*"
+    restart: always
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
+    expose:
+      - "8000"
     ports:
+      # Amarrado estritamente a 127.0.0.1 para evitar exposição direta de portas na VPS
       - "127.0.0.1:8000:8000"
     volumes:
       - ./auth.db:/app/auth.db
       - ./.env:/app/.env:ro
-      - ./static:/app/static
-      - ./templates:/app/templates
-      - ./app.py:/app/app.py
-      - ./unifi_client.py:/app/unifi_client.py
-      - ./acronis_client.py:/app/acronis_client.py
-      - ./config.py:/app/config.py
-      - ./auth.py:/app/auth.py
+      - ./static:/app/static:ro
     environment:
       - PYTHONUNBUFFERED=1
-      - TZ=America/Sao_Paulo
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/login', timeout=5)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - ENVIRONMENT=production
     networks:
-      - jm_internal_network
+      - soc_internal_net
 
-  # 2. Console Administrativo Externo Isolado (Gestão de Utilizadores e Segurança)
+  # 2. Console Administrativo Externo Isolado (Gestão de Utilizadores)
   admin-console:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: jm_cyber_protect_admin
-    restart: unless-stopped
-    command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1 --proxy-headers --forwarded-allow-ips="*"
+    restart: always
+    command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1
+    expose:
+      - "8001"
     ports:
-      - "0.0.0.0:8001:8001"
+      # Apenas localhost (acessível via túnel SSH ou proxy autenticado com chave mestra)
+      - "127.0.0.1:8001:8001"
     volumes:
       - ./auth.db:/app/auth.db
       - ./.env:/app/.env:ro
-      - ./static:/app/static
-      - ./templates:/app/templates
-      - ./admin_server.py:/app/admin_server.py
-      - ./admin_cli.py:/app/admin_cli.py
-      - ./config.py:/app/config.py
-      - ./auth.py:/app/auth.py
+      - ./static:/app/static:ro
     environment:
       - PYTHONUNBUFFERED=1
-      - TZ=America/Sao_Paulo
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - ENVIRONMENT=production
     networks:
-      - jm_internal_network
+      - soc_internal_net
+
+  # 3. Gateway Proxy Seguro (Nginx / SSL / HSTS / Let's Encrypt)
+  soc-reverse-proxy:
+    image: nginx:alpine
+    container_name: jm_cyber_protect_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx_soc.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - painel-cyber
+    networks:
+      - soc_internal_net
 
 networks:
-  jm_internal_network:
+  soc_internal_net:
     driver: bridge
+

@@ -8,8 +8,14 @@ import sqlite3
 import hashlib
 import secrets
 import time
+import logging
+import threading
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
+import jwt
+from config import Config
+
+logger = logging.getLogger("auth")
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "auth.db")
 
@@ -37,6 +43,239 @@ def verify_password(password: str, stored_hash: str, salt: str) -> bool:
     calculated_hash, _ = hash_password(password, salt)
     return secrets.compare_digest(calculated_hash, stored_hash)
 
+# ==================== SEGURANÇA JWT & RBAC ESTREITO ====================
+
+SOC_ROLES = {"admin", "adm", "operator", "operador", "analista_soc_l1", "analista_soc_l2", "soc_analyst"}
+
+def is_soc_role(role: Optional[str]) -> bool:
+    """Verifica se o papel do usuário pertence à equipe operacional ou administração do SOC."""
+    if not role:
+        return False
+    return str(role).lower().strip() in SOC_ROLES
+
+def create_access_token(user_id: int, username: str, role: str, email: Optional[str] = None, expires_delta_minutes: Optional[int] = None) -> str:
+    """Gera um Token JWT assinado com expiração curta (15 a 30 minutos)."""
+    minutes = expires_delta_minutes or Config.ACCESS_TOKEN_EXPIRE_MINUTES
+    now = datetime.now(timezone.utc)
+    expire = now.timestamp() + (minutes * 60)
+    payload = {
+        "sub": str(user_id),
+        "user_id": user_id,
+        "username": username,
+        "email": email or "",
+        "role": role,
+        "iat": int(now.timestamp()),
+        "exp": int(expire)
+    }
+    return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm=Config.JWT_ALGORITHM)
+
+def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
+    """Decodifica e valida assinatura e expiração do Token JWT."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+def is_role_authorized_for_destructive(role: str) -> bool:
+    """
+    Verifica se o papel do usuário possui permissão para comandos destrutivos
+    (Isolamento de Máquina, Bloqueio de MAC na UniFi, Quarentena VLAN, PoE Power Cycle).
+    Requisito estrito: apenas 'admin' ou 'analista_soc_l2' possuem privilégios.
+    """
+    return str(role).lower().strip() in ("admin", "analista_soc_l2")
+
+# ==================== GERENCIADOR DE SESSÕES ATIVAS DE SOC ====================
+
+_active_soc_sessions: Dict[str, Dict[str, Any]] = {}
+_soc_sessions_lock = threading.Lock()
+
+def register_active_soc_user(session_id: str, user: Dict[str, Any], expires_at: float) -> None:
+    """Registra operador/administrador ativo no SOC no momento do login."""
+    role = user.get("role", "operator")
+    if not is_soc_role(role):
+        return
+    with _soc_sessions_lock:
+        _active_soc_sessions[session_id] = {
+            "session_id": session_id,
+            "user_id": user.get("id"),
+            "username": user.get("username"),
+            "email": user.get("email"),
+            "full_name": user.get("full_name"),
+            "role": role,
+            "receive_alerts": bool(user.get("receive_alerts", True)),
+            "login_time": time.time(),
+            "expires_at": expires_at
+        }
+    logger.info(f"[SOC SESSION LOGIN] Operador '{user.get('username')}' ({user.get('email')}, role: {role}) registrado para alertas dinâmicos.")
+
+def unregister_active_soc_user(session_id: str) -> None:
+    """Remove a sessão do operador no logout ou expiração."""
+    with _soc_sessions_lock:
+        removed = _active_soc_sessions.pop(session_id, None)
+    if removed:
+        logger.info(f"[SOC SESSION LOGOUT] Operador '{removed.get('username')}' ({removed.get('email')}) removido da lista de plantão.")
+
+def cleanup_expired_soc_sessions() -> None:
+    """Descarta sessões expiradas em memória e no banco SQLite."""
+    now = time.time()
+    with _soc_sessions_lock:
+        expired_keys = [sid for sid, d in _active_soc_sessions.items() if d.get("expires_at", 0) <= now]
+        for sid in expired_keys:
+            _active_soc_sessions.pop(sid, None)
+
+    conn = get_db_connection()
+    try:
+        with conn:
+            conn.execute("DELETE FROM sessions WHERE expires_at < ?", (now,))
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+def get_active_soc_recipients(severity: str = "critical", only_subscribed: bool = True) -> List[Dict[str, Any]]:
+    """
+    Retorna a lista de usuários de SOC (operadores e adms) com sessões ativas.
+    Se only_subscribed=True, filtra estritamente quem está com receive_alerts=True.
+    Verifica integridade cruzada de memória e banco de dados SQLite.
+    Garante que contas desativadas ou de outros setores (ex: viewer) nunca sejam incluídas.
+    Inclui preferências granulares de notificação por categoria de incidente.
+    """
+    cleanup_expired_soc_sessions()
+    now = time.time()
+    active_by_user_id: Dict[int, Dict[str, Any]] = {}
+
+    # 1. Busca sessões válidas no SQLite
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT u.id as user_id, u.username, u.email, u.full_name, u.role, u.is_active,
+                            COALESCE(u.receive_alerts, 1) as receive_alerts,
+                            COALESCE(u.notify_url_filter, 0) as notify_url_filter,
+                            COALESCE(u.notify_edr, 1) as notify_edr,
+                            COALESCE(u.notify_unifi_ips, 1) as notify_unifi_ips,
+                            COALESCE(u.notify_backup_fail, 1) as notify_backup_fail,
+                            COALESCE(u.notify_device_offline, 0) as notify_device_offline
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.expires_at > ? AND u.is_active = 1
+        """, (now,))
+        for row in cursor.fetchall():
+            uid = row["user_id"]
+            role = row["role"]
+            if is_soc_role(role) and row["email"] and "@" in row["email"]:
+                user_receive = bool(row["receive_alerts"])
+                if not only_subscribed or user_receive:
+                    active_by_user_id[uid] = {
+                        "user_id": uid,
+                        "username": row["username"],
+                        "email": row["email"],
+                        "full_name": row["full_name"],
+                        "role": role,
+                        "receive_alerts": user_receive,
+                        "notify_url_filter": bool(row["notify_url_filter"]),
+                        "notify_edr": bool(row["notify_edr"]),
+                        "notify_unifi_ips": bool(row["notify_unifi_ips"]),
+                        "notify_backup_fail": bool(row["notify_backup_fail"]),
+                        "notify_device_offline": bool(row["notify_device_offline"])
+                    }
+    except Exception as e:
+        logger.warning(f"Erro ao consultar sessões ativas do banco: {e}")
+    finally:
+        conn.close()
+
+    # 2. Mescla com o registro em memória
+    with _soc_sessions_lock:
+        for sid, sess in _active_soc_sessions.items():
+            if sess.get("expires_at", 0) > now:
+                uid = sess.get("user_id")
+                role = sess.get("role")
+                user_receive = bool(sess.get("receive_alerts", True))
+                if uid and is_soc_role(role) and sess.get("email"):
+                    if not only_subscribed or user_receive:
+                        active_by_user_id[uid] = {
+                            "user_id": uid,
+                            "username": sess.get("username"),
+                            "email": sess.get("email"),
+                            "full_name": sess.get("full_name"),
+                            "role": role,
+                            "receive_alerts": user_receive,
+                            "notify_url_filter": bool(sess.get("notify_url_filter", active_by_user_id.get(uid, {}).get("notify_url_filter", False))),
+                            "notify_edr": bool(sess.get("notify_edr", active_by_user_id.get(uid, {}).get("notify_edr", True))),
+                            "notify_unifi_ips": bool(sess.get("notify_unifi_ips", active_by_user_id.get(uid, {}).get("notify_unifi_ips", True))),
+                            "notify_backup_fail": bool(sess.get("notify_backup_fail", active_by_user_id.get(uid, {}).get("notify_backup_fail", True))),
+                            "notify_device_offline": bool(sess.get("notify_device_offline", active_by_user_id.get(uid, {}).get("notify_device_offline", False)))
+                        }
+
+    return list(active_by_user_id.values())
+
+def update_user_alert_preference(
+    user_id: int,
+    receive_alerts: Optional[bool] = None,
+    notify_url_filter: Optional[bool] = None,
+    notify_edr: Optional[bool] = None,
+    notify_unifi_ips: Optional[bool] = None,
+    notify_backup_fail: Optional[bool] = None,
+    notify_device_offline: Optional[bool] = None
+) -> bool:
+    """Atualiza a preferência geral e as categorias granulares de alerta por e-mail do usuário."""
+    conn = get_db_connection()
+    try:
+        fields = []
+        vals = []
+        if receive_alerts is not None:
+            fields.append("receive_alerts = ?")
+            vals.append(1 if receive_alerts else 0)
+        if notify_url_filter is not None:
+            fields.append("notify_url_filter = ?")
+            vals.append(1 if notify_url_filter else 0)
+        if notify_edr is not None:
+            fields.append("notify_edr = ?")
+            vals.append(1 if notify_edr else 0)
+        if notify_unifi_ips is not None:
+            fields.append("notify_unifi_ips = ?")
+            vals.append(1 if notify_unifi_ips else 0)
+        if notify_backup_fail is not None:
+            fields.append("notify_backup_fail = ?")
+            vals.append(1 if notify_backup_fail else 0)
+        if notify_device_offline is not None:
+            fields.append("notify_device_offline = ?")
+            vals.append(1 if notify_device_offline else 0)
+
+        if not fields:
+            return True
+
+        vals.append(user_id)
+        sql = f"UPDATE users SET {', '.join(fields)} WHERE id = ?"
+
+        with conn:
+            conn.execute(sql, tuple(vals))
+
+        with _soc_sessions_lock:
+            for sid, sess in _active_soc_sessions.items():
+                if sess.get("user_id") == user_id:
+                    if receive_alerts is not None:
+                        sess["receive_alerts"] = bool(receive_alerts)
+                    if notify_url_filter is not None:
+                        sess["notify_url_filter"] = bool(notify_url_filter)
+                    if notify_edr is not None:
+                        sess["notify_edr"] = bool(notify_edr)
+                    if notify_unifi_ips is not None:
+                        sess["notify_unifi_ips"] = bool(notify_unifi_ips)
+                    if notify_backup_fail is not None:
+                        sess["notify_backup_fail"] = bool(notify_backup_fail)
+                    if notify_device_offline is not None:
+                        sess["notify_device_offline"] = bool(notify_device_offline)
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao atualizar preferência de alertas do usuário {user_id}: {e}")
+        return False
+    finally:
+        conn.close()
+
 def init_db() -> None:
     """Inicializa as tabelas de utilizadores, sessões e logs de auditoria."""
     conn = get_db_connection()
@@ -54,10 +293,32 @@ def init_db() -> None:
                 salt TEXT NOT NULL,
                 is_active INTEGER DEFAULT 0,
                 role TEXT DEFAULT 'operator',
+                receive_alerts INTEGER DEFAULT 1,
+                notify_url_filter INTEGER DEFAULT 0,
+                notify_edr INTEGER DEFAULT 1,
+                notify_unifi_ips INTEGER DEFAULT 1,
+                notify_backup_fail INTEGER DEFAULT 1,
+                notify_device_offline INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL,
                 last_login TEXT
             )
         """)
+
+        # Migrações seguras para tabelas existentes
+        migrations = [
+            "ALTER TABLE users ADD COLUMN receive_alerts INTEGER DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN notify_url_filter INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN notify_edr INTEGER DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN notify_unifi_ips INTEGER DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN notify_backup_fail INTEGER DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN notify_device_offline INTEGER DEFAULT 0"
+        ]
+        for mig in migrations:
+            try:
+                cursor.execute(mig)
+                conn.commit()
+            except Exception:
+                pass
 
         # Tabela de Sessões Ativas
         cursor.execute("""
@@ -146,7 +407,7 @@ def create_user(
             return False, "A senha deve ter pelo menos 6 caracteres.", None
         if not email or "@" not in email:
             return False, "E-mail inválido.", None
-        if role not in ("admin", "operator", "viewer"):
+        if role not in ("admin", "analista_soc_l2", "operator", "viewer", "soc_analyst"):
             role = "operator"
 
         pwd_hash, salt = hash_password(password)
@@ -196,7 +457,14 @@ def authenticate_user(
         query_val = username_or_email.strip().lower()
 
         cursor.execute("""
-            SELECT id, username, email, full_name, password_hash, salt, is_active, role, created_at, last_login
+            SELECT id, username, email, full_name, password_hash, salt, is_active, role,
+                   COALESCE(receive_alerts, 1) as receive_alerts,
+                   COALESCE(notify_url_filter, 0) as notify_url_filter,
+                   COALESCE(notify_edr, 1) as notify_edr,
+                   COALESCE(notify_unifi_ips, 1) as notify_unifi_ips,
+                   COALESCE(notify_backup_fail, 1) as notify_backup_fail,
+                   COALESCE(notify_device_offline, 0) as notify_device_offline,
+                   created_at, last_login
             FROM users
             WHERE username = ? OR email = ?
         """, (query_val, query_val))
@@ -230,6 +498,12 @@ def authenticate_user(
         user.pop("password_hash", None)
         user.pop("salt", None)
         user["last_login"] = now_iso
+        user["receive_alerts"] = bool(row["receive_alerts"])
+        user["notify_url_filter"] = bool(row["notify_url_filter"])
+        user["notify_edr"] = bool(row["notify_edr"])
+        user["notify_unifi_ips"] = bool(row["notify_unifi_ips"])
+        user["notify_backup_fail"] = bool(row["notify_backup_fail"])
+        user["notify_device_offline"] = bool(row["notify_device_offline"])
         return user, "Login realizado com sucesso."
     finally:
         conn.close()
@@ -260,7 +534,14 @@ def get_session_user(session_id: str) -> Optional[Dict[str, Any]]:
         cursor = conn.cursor()
         now = time.time()
         cursor.execute("""
-            SELECT s.expires_at, u.id, u.username, u.email, u.full_name, u.is_active, u.role, u.last_login
+            SELECT s.expires_at, u.id, u.username, u.email, u.full_name, u.is_active, u.role,
+                   COALESCE(u.receive_alerts, 1) as receive_alerts,
+                   COALESCE(u.notify_url_filter, 0) as notify_url_filter,
+                   COALESCE(u.notify_edr, 1) as notify_edr,
+                   COALESCE(u.notify_unifi_ips, 1) as notify_unifi_ips,
+                   COALESCE(u.notify_backup_fail, 1) as notify_backup_fail,
+                   COALESCE(u.notify_device_offline, 0) as notify_device_offline,
+                   u.last_login
             FROM sessions s
             JOIN users u ON s.user_id = u.id
             WHERE s.session_id = ?
@@ -287,12 +568,19 @@ def get_session_user(session_id: str) -> Optional[Dict[str, Any]]:
             "full_name": row["full_name"],
             "is_active": bool(row["is_active"]),
             "role": row["role"],
+            "receive_alerts": bool(row["receive_alerts"]),
+            "notify_url_filter": bool(row["notify_url_filter"]),
+            "notify_edr": bool(row["notify_edr"]),
+            "notify_unifi_ips": bool(row["notify_unifi_ips"]),
+            "notify_backup_fail": bool(row["notify_backup_fail"]),
+            "notify_device_offline": bool(row["notify_device_offline"]),
             "last_login": row["last_login"]
         }
     finally:
         conn.close()
 
 def delete_session(session_id: str) -> None:
+    unregister_active_soc_user(session_id)
     conn = get_db_connection()
     try:
         with conn:
@@ -302,6 +590,10 @@ def delete_session(session_id: str) -> None:
 
 def delete_user_sessions(user_id: int) -> None:
     """Revoga todas as sessões ativas de um determinado utilizador."""
+    with _soc_sessions_lock:
+        to_del = [sid for sid, data in _active_soc_sessions.items() if data.get("user_id") == user_id]
+        for sid in to_del:
+            _active_soc_sessions.pop(sid, None)
     conn = get_db_connection()
     try:
         with conn:
@@ -369,52 +661,6 @@ def block_user(user_id_or_username: Any, admin_actor: Optional[str] = None, ip_a
         log_audit(cursor, user_id, username, "user_blocked", ip_address, f"Acesso bloqueado/revogado pelo administrador '{admin_actor or 'mestre'}'.")
         conn.commit()
         return True, f"Utilizador '{username}' foi bloqueado e suas sessões foram encerradas."
-    finally:
-        conn.close()
-
-def update_user_role(
-    user_id_or_username: Any,
-    new_role: str,
-    admin_actor: Optional[str] = None,
-    ip_address: Optional[str] = None
-) -> Tuple[bool, str]:
-    """Altera o papel (role) de um utilizador cadastrado (admin, operator, viewer)."""
-    new_role = (new_role or "").strip().lower()
-    valid_roles = ("admin", "operator", "viewer")
-    if new_role not in valid_roles:
-        return False, f"Papel inválido '{new_role}'. Opções permitidas: {', '.join(r.upper() for r in valid_roles)}."
-
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        if isinstance(user_id_or_username, int) or str(user_id_or_username).isdigit():
-            cursor.execute("SELECT id, username, role FROM users WHERE id = ?", (int(user_id_or_username),))
-        else:
-            cursor.execute("SELECT id, username, role FROM users WHERE username = ?", (str(user_id_or_username).lower(),))
-        row = cursor.fetchone()
-        if not row:
-            return False, "Utilizador não encontrado."
-
-        user_id = row["id"]
-        username = row["username"]
-        old_role = (row["role"] or "").lower()
-
-        if old_role == new_role:
-            return True, f"O utilizador '{username}' já possui o papel '{new_role.upper()}'."
-
-        cursor.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
-        log_audit(
-            cursor,
-            user_id,
-            username,
-            "user_role_updated",
-            ip_address,
-            f"Papel do utilizador '{username}' alterado de '{old_role.upper()}' para '{new_role.upper()}' pelo administrador '{admin_actor or 'mestre'}'."
-        )
-        conn.commit()
-        return True, f"Papel do utilizador '{username}' alterado com sucesso para {new_role.upper()}."
-    except Exception as e:
-        return False, f"Erro ao alterar papel: {str(e)}"
     finally:
         conn.close()
 
@@ -501,18 +747,6 @@ def get_stats() -> Dict[str, int]:
             "pending_users": pending,
             "admin_users": admins
         }
-    finally:
-        conn.close()
-
-def log_audit_event(action: str, details: str, username: Optional[str] = "admin", ip_address: Optional[str] = None) -> None:
-    """Registra evento de auditoria administrativa de segurança."""
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        log_audit(cursor, None, username, action, ip_address, details)
-        conn.commit()
-    except Exception:
-        pass
     finally:
         conn.close()
 

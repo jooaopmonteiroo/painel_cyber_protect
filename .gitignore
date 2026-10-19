@@ -26,3 +26,6 @@ ENV/
 # Bancos de Dados Locais e Sessões
 auth.db*
 *.sqlite3
+
+# Scratch e Scripts de Teste Temporários
+scratch/
