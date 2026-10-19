@@ -3,6 +3,7 @@ services:
   painel-cyber:
     build: .
     container_name: jm_cyber_protect_dashboard
+    user: "root"
     restart: always
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
     expose:
@@ -12,7 +13,7 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./auth.db:/app/auth.db
-      - ./.env:/app/.env:ro
+      - ./.env:/app/.env
       - ./static:/app/static:ro
     environment:
       - PYTHONUNBUFFERED=1
@@ -24,6 +25,7 @@ services:
   admin-console:
     build: .
     container_name: jm_cyber_protect_admin
+    user: "root"
     restart: always
     command: uvicorn admin_server:app --host 0.0.0.0 --port 8001 --workers 1
     expose:
@@ -33,7 +35,7 @@ services:
       - "127.0.0.1:8001:8001"
     volumes:
       - ./auth.db:/app/auth.db
-      - ./.env:/app/.env:ro
+      - ./.env:/app/.env
       - ./static:/app/static:ro
     environment:
       - PYTHONUNBUFFERED=1

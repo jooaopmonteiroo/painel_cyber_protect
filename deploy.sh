@@ -29,9 +29,9 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
-# Blindagem de permissões do arquivo de segredos (Nenhum outro usuário lê)
-chmod 600 .env
-chmod 664 auth.db
+# Ajuste de permissões para leitura pelo Docker e gravação do SQLite
+chmod 644 .env
+chmod 666 auth.db
 
 if command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
     echo "[2/4] Parando contêineres antigos..."
